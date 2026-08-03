@@ -1,12 +1,25 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.deps import Session, get_current_user
-from app.models.domain import Volunteer
+from app.models.domain import Volunteer, VolunteerSummary
 from app.services.store import get_store
 
 router = APIRouter(tags=["volunteers"])
 
 NOT_A_VOLUNTEER_DETAIL = "Register as a volunteer first — see the Join In section."
+NOT_A_DONOR_DETAIL = "Only donors can view the volunteer directory."
+
+
+@router.get("/volunteers", response_model=list[VolunteerSummary])
+def list_volunteers(session: Session = Depends(get_current_user)) -> list[Volunteer]:
+    """Donor-facing directory for the donation-event assignment picker —
+    see specs/features/009-scheduled-donation-events/design.md."""
+    user_id, user = session
+    if get_store().resolve_donor_id(user_id, user.email) is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail=NOT_A_DONOR_DETAIL
+        )
+    return get_store().list_volunteers()
 
 
 @router.get("/volunteers/me", response_model=Volunteer)

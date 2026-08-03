@@ -11,6 +11,7 @@ export type Donor = {
   id: string;
   name: string;
   location: string;
+  country: string;
   story: string;
   totalMeals: number;
   donationCount: number;
@@ -69,9 +70,33 @@ export type Volunteer = {
   id: string;
   name: string;
   location: string;
+  country: string;
   packetsPerTrip?: number;
   availability?: string;
   events: EventItem[];
+};
+
+export type VolunteerSummary = {
+  id: string;
+  name: string;
+  location: string;
+  country: string;
+  packetsPerTrip?: number;
+  availability?: string;
+};
+
+export type DonationEventStatus = "scheduled" | "submitted";
+
+export type DonationEvent = {
+  id: string;
+  donorId: string;
+  donorName: string;
+  location: string;
+  date: string;
+  volunteerId?: string;
+  volunteerName?: string;
+  status: DonationEventStatus;
+  submissionId?: string;
 };
 
 export type JoinMode = "donor" | "volunteer";
@@ -80,6 +105,7 @@ export type SignupPayload = {
   mode: JoinMode;
   name?: string;
   location: string;
+  country: string;
   notes?: string;
   // mode === "donor" (invitation-only application)
   email?: string;
@@ -105,6 +131,10 @@ export type SubmissionPayload = {
   // Set only when a linked volunteer is submitting on a donor's behalf —
   // see specs/features/008-persona-dashboards-and-roles/design.md.
   donor_id?: string;
+  // Set when submitting against a pre-scheduled DonationEvent — takes
+  // precedence over donor_id if both are present. See
+  // specs/features/009-scheduled-donation-events/design.md.
+  donation_event_id?: string;
 };
 
 // Snake_case on the wire (unlike ContentResponse etc.) — SignupAdminView is
@@ -116,6 +146,7 @@ export type SignupAdminView = {
   name?: string;
   email?: string;
   location: string;
+  country?: string;
   notes?: string;
   packet_count?: number;
   delivery_role?: "self" | "volunteer_needed";

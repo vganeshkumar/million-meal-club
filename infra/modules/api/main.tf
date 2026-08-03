@@ -113,6 +113,7 @@ resource "aws_lambda_function" "api" {
         SIGNUPS_TABLE           = var.table_names["signups"]
         VOLUNTEERS_TABLE        = var.table_names["volunteers"]
         EVENT_SIGNUPS_TABLE     = var.table_names["event_signups"]
+        DONATION_EVENTS_TABLE   = var.table_names["donation_events"]
         PARTNER_CHARITIES_TABLE = var.table_names["partner_charities"]
         CONFIG_TABLE            = var.table_names["config"]
         PHOTOS_BUCKET_NAME      = var.photos_bucket_name

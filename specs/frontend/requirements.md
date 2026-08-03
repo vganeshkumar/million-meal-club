@@ -26,6 +26,12 @@ hardcoded arrays and simulated sign-in.
     way to start a new donation.
   - `#my-volunteering` — a volunteer's profile, event RSVPs, and a
     submit-proof-on-behalf-of-a-donor form.
+- **Added 2026-08-03**: a donor can pre-schedule a donation (location,
+  date, optional assigned volunteer) from `#my-donations`; both the
+  Gallery submit-proof form and the volunteer's submit-for-a-donor form
+  gain an optional picker for a scheduled donation, which auto-fills
+  location and shows the counterpart's name read-only. See
+  [[009-scheduled-donation-events]].
 - Content that's currently hardcoded in the prototype but needs a real
   admin-editable backing store (donors, events, partner charities, meal
   totals, milestones, gallery) is fetched at runtime from
@@ -38,7 +44,11 @@ hardcoded arrays and simulated sign-in.
   prototype's `localStorage`-only simulated session.
 - Join In form posts to the real backend (see [[002-join-in-signup]]): an
   invitation-only donor application (not instant sign-up) or a volunteer
-  registration.
+  registration. Both modes include a required **Country** field (a
+  `<select>`, not freeform) alongside Location — carried onto the
+  resulting Donor/Volunteer record and shown wherever location already is,
+  including as a sort signal on the donation-event volunteer-assignment
+  picker. See [[010-country-field-for-matching]].
 - Gallery upload form (signed-in only) uploads a real photo via a presigned
   S3 URL and creates a real pending submission (see
   [[003-photo-proof-submission]]). Requires an approved, linked donor as of

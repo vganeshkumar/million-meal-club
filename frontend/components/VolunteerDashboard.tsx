@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, ApiError, uploadToPresignedUrl } from "@/lib/api";
-import type { EventItem, Volunteer } from "@/lib/types";
+import type { DonationEvent, EventItem, Volunteer } from "@/lib/types";
 
 const fieldClass =
   "rounded-[10px] border border-border-strong bg-bg px-3.5 py-3 text-[15px] font-body";
@@ -64,6 +64,7 @@ export function VolunteerDashboard({ events }: VolunteerDashboardProps) {
         <>
           <p className="m-0 mb-8 text-sm text-muted-2">
             {volunteer.name} · {volunteer.location}
+            {volunteer.country ? `, ${volunteer.country}` : ""}
           </p>
 
           <h2 className="mt-0 mb-4 font-display text-lg font-bold">Events</h2>
@@ -115,6 +116,26 @@ function SubmitForDonorForm() {
     "idle" | "uploading" | "done" | "error"
   >("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [assignedEvents, setAssignedEvents] = useState<DonationEvent[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState("");
+  const [location, setLocation] = useState("");
+
+  useEffect(() => {
+    api
+      .listVolunteerAssignedEvents()
+      .then((events) =>
+        setAssignedEvents(events.filter((e) => e.status === "scheduled")),
+      )
+      .catch(() => {});
+  }, []);
+
+  const selectedEvent = assignedEvents.find((e) => e.id === selectedEventId);
+
+  function handleEventChange(eventId: string) {
+    setSelectedEventId(eventId);
+    const event = assignedEvents.find((e) => e.id === eventId);
+    setLocation(event ? event.location : "");
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -124,9 +145,9 @@ function SubmitForDonorForm() {
     const receipt = data.get("receipt") as File | null;
     const donorId = String(data.get("donor_id") ?? "").trim();
 
-    if (!donorId) {
+    if (!selectedEventId && !donorId) {
       setStatus("error");
-      setErrorMessage("Please enter the donor's ID.");
+      setErrorMessage("Please pick a donation event or enter the donor's ID.");
       return;
     }
     if (!photo || photo.size === 0) {
@@ -160,14 +181,17 @@ function SubmitForDonorForm() {
       }
 
       await api.submitProof({
-        donor_id: donorId,
-        location: String(data.get("location") ?? ""),
+        donation_event_id: selectedEventId || undefined,
+        donor_id: selectedEventId ? undefined : donorId,
+        location,
         meals: Number(data.get("meals_delivered") ?? 0),
         photo_key: photoPresign.key,
         receipt_key: receiptKey,
         caption: (data.get("caption") as string) || undefined,
       });
       setStatus("done");
+      setSelectedEventId("");
+      setLocation("");
       form.reset();
     } catch (err) {
       setStatus("error");
@@ -199,22 +223,48 @@ function SubmitForDonorForm() {
           onSubmit={handleSubmit}
           className="flex flex-col gap-4 rounded-3xl border border-border bg-card p-[clamp(24px,3vw,36px)]"
         >
-          <label className={labelClass}>
-            Donor ID
-            <input
-              type="text"
-              name="donor_id"
-              required
-              placeholder="The donor's ID"
-              className={fieldClass}
-            />
-          </label>
+          {assignedEvents.length > 0 && (
+            <label className={labelClass}>
+              Which donation is this for?
+              <select
+                value={selectedEventId}
+                onChange={(e) => handleEventChange(e.target.value)}
+                className={fieldClass}
+              >
+                <option value="">— Enter a donor ID manually —</option>
+                {assignedEvents.map((ev) => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.donorName} — {ev.date} — {ev.location}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {selectedEvent ? (
+            <div className="rounded-[10px] bg-green-soft px-3.5 py-2.5 text-sm font-bold text-[var(--accent-green)]">
+              Donor: {selectedEvent.donorName}
+            </div>
+          ) : (
+            <label className={labelClass}>
+              Donor ID
+              <input
+                type="text"
+                name="donor_id"
+                required
+                placeholder="The donor's ID"
+                className={fieldClass}
+              />
+            </label>
+          )}
           <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-4">
             <label className={labelClass}>
               Location
               <input
                 type="text"
                 name="location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                readOnly={Boolean(selectedEvent)}
                 required
                 className={fieldClass}
               />

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { api, ApiError } from "@/lib/api";
+import { COUNTRIES } from "@/lib/countries";
 import type { AuthUser, JoinMode, PartnerCharity } from "@/lib/types";
 
 type JoinInFormProps = {
@@ -29,11 +30,9 @@ export function JoinInForm({ user, partnerCharities }: JoinInFormProps) {
       await api.submitSignup({
         mode,
         name: user ? undefined : String(form.get("name") ?? ""),
-        email:
-          mode === "donor" && !user
-            ? String(form.get("email") ?? "")
-            : undefined,
+        email: !user ? String(form.get("email") ?? "") : undefined,
         location: String(form.get("location") ?? ""),
+        country: String(form.get("country") ?? ""),
         notes: (form.get("notes") as string) || undefined,
         packet_count:
           mode === "donor" && form.get("packets")
@@ -130,23 +129,32 @@ export function JoinInForm({ user, partnerCharities }: JoinInFormProps) {
             Name
             <input type="text" name="name" required className={fieldClass} />
           </label>
-          {mode === "donor" && (
-            <label className={labelClass}>
-              Email
-              <input
-                type="email"
-                name="email"
-                required
-                className={fieldClass}
-              />
-            </label>
-          )}
+          <label className={labelClass}>
+            Email
+            <input
+              type="email"
+              name="email"
+              required
+              className={fieldClass}
+            />
+          </label>
         </>
       )}
 
       <label className={labelClass}>
         Location / City
         <input type="text" name="location" required className={fieldClass} />
+      </label>
+
+      <label className={labelClass}>
+        Country
+        <select name="country" required defaultValue="United States" className={fieldClass}>
+          {COUNTRIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
       </label>
 
       {mode === "donor" ? (

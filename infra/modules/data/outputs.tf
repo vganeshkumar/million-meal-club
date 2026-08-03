@@ -9,6 +9,7 @@ output "table_names" {
     signups           = aws_dynamodb_table.signups.name
     volunteers        = aws_dynamodb_table.volunteers.name
     event_signups     = aws_dynamodb_table.event_signups.name
+    donation_events   = aws_dynamodb_table.donation_events.name
     partner_charities = aws_dynamodb_table.partner_charities.name
     config            = aws_dynamodb_table.config.name
   }
@@ -31,6 +32,8 @@ output "table_arns" {
     "${aws_dynamodb_table.volunteers.arn}/index/*",
     aws_dynamodb_table.event_signups.arn,
     "${aws_dynamodb_table.event_signups.arn}/index/*",
+    aws_dynamodb_table.donation_events.arn,
+    "${aws_dynamodb_table.donation_events.arn}/index/*",
     aws_dynamodb_table.partner_charities.arn,
     aws_dynamodb_table.config.arn,
   ]

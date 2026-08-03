@@ -3,6 +3,7 @@ from typing import Protocol
 
 from app.models.domain import (
     ContentResponse,
+    DonationEvent,
     Donor,
     SignupRequest,
     Volunteer,
@@ -82,6 +83,39 @@ class Store(Protocol):
 
     def remove_event_rsvp(self, volunteer_id: str, event_id: str) -> None: ...
 
+    def list_volunteers(self) -> list[Volunteer]:
+        """Donor-facing directory for the donation-event assignment picker
+        — see specs/features/009-scheduled-donation-events/design.md."""
+        ...
+
+    def create_donation_event(
+        self,
+        donor_id: str,
+        donor_name: str,
+        location: str,
+        date: str,
+        volunteer_id: str | None,
+        volunteer_name: str | None,
+    ) -> DonationEvent: ...
+
+    def list_donation_events_for_donor(self, donor_id: str) -> list[DonationEvent]: ...
+
+    def list_donation_events_for_volunteer(
+        self, volunteer_id: str
+    ) -> list[DonationEvent]: ...
+
+    def get_donation_event(self, event_id: str) -> DonationEvent | None: ...
+
+    def assign_donation_event_volunteer(
+        self,
+        event_id: str,
+        volunteer_id: str | None,
+        volunteer_name: str | None,
+    ) -> DonationEvent:
+        """Raises ValueError if the event is already `submitted` —
+        reassignment is locked once proof has been submitted against it."""
+        ...
+
     def create_submission(
         self,
         donor_id: str,
@@ -93,18 +127,27 @@ class Store(Protocol):
         caption: str | None,
         delivery_role: str | None,
         partner_charity: str | None,
+        donation_event_id: str | None = None,
     ) -> str:
         """`donor_id` is already resolved by the caller (the router) —
         either the submitter's own linked donor, or (when a linked
         volunteer is submitting on someone's behalf) the chosen donor. See
-        specs/features/008-persona-dashboards-and-roles/design.md."""
+        specs/features/008-persona-dashboards-and-roles/design.md. When
+        `donation_event_id` is set, this also atomically flips that
+        DonationEvent to `submitted` (storing this submission's id on it)
+        — see specs/features/009-scheduled-donation-events/design.md."""
         ...
 
     def list_submissions(self, status: str) -> list[dict]: ...
 
     def approve_submission(self, submission_id: str) -> None: ...
 
-    def reject_submission(self, submission_id: str) -> None: ...
+    def reject_submission(self, submission_id: str) -> None:
+        """If this submission referenced a DonationEvent, reopens it back
+        to `scheduled` (a rejected submission means "this didn't count,"
+        not "this delivery didn't happen") — see
+        specs/features/009-scheduled-donation-events/design.md."""
+        ...
 
     def update_config(self, **fields) -> None: ...
 

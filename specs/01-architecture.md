@@ -114,6 +114,14 @@ Tables (all on-demand):
 - `EventSignups` — PK `volunteer_id`, SK `event_id`. A volunteer's RSVP to
   an event. GSI `event-index` on `event_id` (reserved for a future admin
   headcount view, unused today).
+- `DonationEvents` — PK `event_id`. A donor's own planned delivery,
+  scheduled in advance (**not** related to `Events`/`EventSignups` above,
+  which is the site-wide packing-drive calendar). Denormalized `donor_id`/
+  `donor_name`, `location`, `date`, optional `volunteer_id`/
+  `volunteer_name` (the donor's assignment), `status`
+  (`scheduled | submitted`), `submission_id` once submitted. GSI
+  `donor-index` on `donor_id`, GSI `volunteer-index` on `volunteer_id`. See
+  [[features/009-scheduled-donation-events/design]].
 - `PartnerCharities` — PK `charity_id`. `name`, `location`, `description`.
   Shown on the Partner Charities page (`#charities`) as a money-donation
   alternative to picking your own location. Admin-editable content (same
@@ -177,6 +185,14 @@ this doc: a volunteer delivering *on behalf of* a donor can now submit
 proof themselves (attributed to the donor's record via a `donor_id` on the
 submission), instead of needing the donor of record to submit it or the
 founder to record it manually.
+
+**Donors can also pre-schedule a delivery and assign a specific volunteer
+to it** (`DonationEvents`, added 2026-08-03 — see
+[[features/009-scheduled-donation-events/design]]): once assigned, either
+party's submit-proof form can reference the event instead of typing a raw
+donor ID or a fresh location, the other party's name auto-populates from
+the event, and the event is locked to one submission (reopened only if the
+founder rejects that submission).
 
 ### Onboarding email: AWS SES
 On donor approval, the founder's action triggers an onboarding email via

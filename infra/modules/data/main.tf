@@ -209,6 +209,43 @@ resource "aws_dynamodb_table" "event_signups" {
   tags = var.tags
 }
 
+# A donor's own pre-scheduled delivery, optionally assigned to a specific
+# volunteer — distinct from `events`/`event_signups` above (the site-wide
+# packing-drive calendar). See
+# specs/features/009-scheduled-donation-events/design.md.
+resource "aws_dynamodb_table" "donation_events" {
+  name         = "${local.name_prefix}-donation-events"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "event_id"
+
+  attribute {
+    name = "event_id"
+    type = "S"
+  }
+  attribute {
+    name = "donor_id"
+    type = "S"
+  }
+  attribute {
+    name = "volunteer_id"
+    type = "S"
+  }
+
+  global_secondary_index {
+    name            = "donor-index"
+    hash_key        = "donor_id"
+    projection_type = "ALL"
+  }
+
+  global_secondary_index {
+    name            = "volunteer-index"
+    hash_key        = "volunteer_id"
+    projection_type = "ALL"
+  }
+
+  tags = var.tags
+}
+
 # Admin-editable content (founder adds/edits directly for now, same as
 # `events` — no dedicated admin endpoint yet). See
 # specs/features/006-partner-charities/design.md.

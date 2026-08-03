@@ -29,7 +29,8 @@ idle cost. See [[00-constitution]] §2 and §3.
 - `POST /api/signups` — Join In form: donor application (invitation-only —
   story + two consent checkboxes required, optional partner-charity
   choice) or volunteer registration. Auth optional; attaches `user_id` if
-  signed in. See [[002-join-in-signup]].
+  signed in. Requires `country` (both modes) alongside `location` — see
+  [[002-join-in-signup]] and [[010-country-field-for-matching]].
 - `POST /api/uploads/presign`, `POST /api/submissions` — auth required
   **and** the signed-in user must be linked to an approved donor (see
   [[007-donor-application-approval]]) — `403` otherwise, **unless**
@@ -52,6 +53,18 @@ idle cost. See [[00-constitution]] §2 and §3.
   email. See [[007-donor-application-approval]].
 - `POST /api/admin/config` — admin only. Edits `Config` (meal totals,
   milestones, etc.) without a code deploy.
+- `GET /api/volunteers` — auth required, donor only (`403` otherwise).
+  Directory of registered volunteers for the donation-event assignment
+  picker. See [[009-scheduled-donation-events]].
+- `POST /api/donation-events`, `GET /api/donation-events/mine`,
+  `PATCH /api/donation-events/{id}/volunteer`,
+  `GET /api/donation-events/volunteer-assigned` — a donor's pre-scheduled
+  deliveries, optionally assigned to a specific volunteer. Submitting proof
+  against one (`donation_event_id` on `POST /api/submissions`) attributes
+  it to the event's donor regardless of who submits, auto-closes the event
+  to further submissions (`409` on a repeat attempt), and reopens it if the
+  founder rejects that submission. See
+  [[009-scheduled-donation-events]].
 - `POST /api/auth/dummy` — **local dev only**, gated behind
   `ENABLE_DUMMY_LOGIN=true` (never set by Terraform). Hardcoded
   `dummy_user`/`dummy_password` login with a role param (admin/donor/

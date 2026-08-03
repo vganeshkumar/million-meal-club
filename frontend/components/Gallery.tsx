@@ -1,8 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, ApiError, uploadToPresignedUrl } from "@/lib/api";
-import type { AuthUser, GalleryPhoto, PartnerCharity } from "@/lib/types";
+import type {
+  AuthUser,
+  DonationEvent,
+  GalleryPhoto,
+  PartnerCharity,
+} from "@/lib/types";
 
 const NOT_APPROVED_MESSAGE =
   "You need an approved donor application before submitting proof — apply via Join In below.";
@@ -31,6 +36,27 @@ export function Gallery({
     "idle" | "uploading" | "done" | "error"
   >("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [scheduledEvents, setScheduledEvents] = useState<DonationEvent[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState("");
+  const [location, setLocation] = useState("");
+
+  useEffect(() => {
+    if (!user?.isDonor) return;
+    api
+      .listMyDonationEvents()
+      .then((events) =>
+        setScheduledEvents(events.filter((e) => e.status === "scheduled")),
+      )
+      .catch(() => {});
+  }, [user?.isDonor]);
+
+  const selectedEvent = scheduledEvents.find((e) => e.id === selectedEventId);
+
+  function handleEventChange(eventId: string) {
+    setSelectedEventId(eventId);
+    const event = scheduledEvents.find((e) => e.id === eventId);
+    setLocation(event ? event.location : "");
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -70,7 +96,7 @@ export function Gallery({
       }
 
       await api.submitProof({
-        location: String(data.get("location") ?? ""),
+        location,
         meals: Number(data.get("meals_delivered") ?? 0),
         photo_key: photoPresign.key,
         receipt_key: receiptKey,
@@ -79,8 +105,11 @@ export function Gallery({
           (data.get("delivery_role") as "self" | "volunteer_needed" | null) ??
           undefined,
         partner_charity: (data.get("partner_charity") as string) || undefined,
+        donation_event_id: selectedEventId || undefined,
       });
       setStatus("done");
+      setSelectedEventId("");
+      setLocation("");
     } catch (err) {
       setStatus("error");
       setErrorMessage(
@@ -134,12 +163,37 @@ export function Gallery({
                 Submitting as {user.name}
               </span>
             </div>
+            {user.isDonor && scheduledEvents.length > 0 && (
+              <label className={labelClass}>
+                Which scheduled donation is this for? (optional)
+                <select
+                  value={selectedEventId}
+                  onChange={(e) => handleEventChange(e.target.value)}
+                  className={fieldClass}
+                >
+                  <option value="">— None (unplanned) —</option>
+                  {scheduledEvents.map((ev) => (
+                    <option key={ev.id} value={ev.id}>
+                      {ev.date} — {ev.location}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {selectedEvent?.volunteerName && (
+              <div className="rounded-[10px] bg-green-soft px-3.5 py-2.5 text-sm font-bold text-[var(--accent-green)]">
+                Volunteer: {selectedEvent.volunteerName}
+              </div>
+            )}
             <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-4">
               <label className={labelClass}>
                 Location
                 <input
                   type="text"
                   name="location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  readOnly={Boolean(selectedEvent)}
                   required
                   className={fieldClass}
                 />

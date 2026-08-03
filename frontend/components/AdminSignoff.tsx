@@ -187,6 +187,12 @@ function PendingApplications() {
                 <dt className="font-bold text-muted-2">Location</dt>
                 <dd className="m-0">{a.location}</dd>
               </div>
+              {a.country && (
+                <div>
+                  <dt className="font-bold text-muted-2">Country</dt>
+                  <dd className="m-0">{a.country}</dd>
+                </div>
+              )}
               {a.packet_count != null && (
                 <div>
                   <dt className="font-bold text-muted-2">Packets</dt>

@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from app.models.domain import (
     ContentResponse,
     Donation,
+    DonationEvent,
     Donor,
     EventItem,
     GalleryPhoto,
@@ -46,6 +47,7 @@ class LocalStore:
         self._submissions: dict[str, dict] = {}
         self._volunteers: dict[str, dict] = {}
         self._event_rsvps: dict[str, set[str]] = {}  # volunteer_id -> {event_id}
+        self._donation_events: dict[str, dict] = {}
         self._seed()
 
     def _seed(self) -> None:
@@ -55,18 +57,21 @@ class LocalStore:
                 "id": d1,
                 "name": "Priya Sharma",
                 "location": "Austin, TX",
+                "country": "United States",
                 "story": "My grandmother never turned away a hungry neighbor. This is the least I can do to carry that forward.",
             },
             d2: {
                 "id": d2,
                 "name": "Marcus Webb",
                 "location": "Round Rock, TX",
+                "country": "United States",
                 "story": "I drive for a living and pass the same shelters every week. Figured I might as well bring something.",
             },
             d3: {
                 "id": d3,
                 "name": "Aiko Tanaka",
                 "location": "Cedar Park, TX",
+                "country": "United States",
                 "story": "Started with one packet on a whim. Now it's part of my Saturday routine.",
             },
         }
@@ -172,6 +177,7 @@ class LocalStore:
                     id=d["id"],
                     name=d["name"],
                     location=d["location"],
+                    country=d.get("country", ""),
                     story=d["story"],
                     total_meals=d["total_meals"],
                     donation_count=d["donation_count"],
@@ -208,6 +214,7 @@ class LocalStore:
             id=d["id"],
             name=d["name"],
             location=d["location"],
+            country=d.get("country", ""),
             story=d["story"],
             total_meals=total,
             donation_count=len(donations),
@@ -234,10 +241,25 @@ class LocalStore:
             id=v["id"],
             name=v["name"],
             location=v.get("location", ""),
+            country=v.get("country", ""),
             packets_per_trip=v.get("packets_per_trip"),
             availability=v.get("availability"),
             events=events,
         )
+
+    def list_volunteers(self) -> list[Volunteer]:
+        return [
+            Volunteer(
+                id=v["id"],
+                name=v["name"],
+                location=v.get("location", ""),
+                country=v.get("country", ""),
+                packets_per_trip=v.get("packets_per_trip"),
+                availability=v.get("availability"),
+                events=[],
+            )
+            for v in self._volunteers.values()
+        ]
 
     # -- users ---------------------------------------------------------
     def get_or_create_user(
@@ -283,6 +305,7 @@ class LocalStore:
                 "id": volunteer_id,
                 "name": name,
                 "location": payload.location,
+                "country": payload.country,
                 "email": email,
                 "packets_per_trip": payload.packets_per_trip,
                 "availability": payload.availability,
@@ -308,6 +331,7 @@ class LocalStore:
             "id": donor_id,
             "name": name,
             "location": signup.get("location", ""),
+            "country": signup.get("country", ""),
             "story": signup.get("donor_story", ""),
             "email": email,
         }
@@ -328,6 +352,82 @@ class LocalStore:
     def remove_event_rsvp(self, volunteer_id: str, event_id: str) -> None:
         self._event_rsvps.get(volunteer_id, set()).discard(event_id)
 
+    # -- donation events ---------------------------------------------------
+    def _donation_event_from_row(self, e: dict) -> DonationEvent:
+        return DonationEvent(
+            id=e["id"],
+            donor_id=e["donor_id"],
+            donor_name=e["donor_name"],
+            location=e["location"],
+            date=e["date"],
+            volunteer_id=e.get("volunteer_id"),
+            volunteer_name=e.get("volunteer_name"),
+            status=e["status"],
+            submission_id=e.get("submission_id"),
+        )
+
+    def create_donation_event(
+        self,
+        donor_id: str,
+        donor_name: str,
+        location: str,
+        date: str,
+        volunteer_id: str | None,
+        volunteer_name: str | None,
+    ) -> DonationEvent:
+        event_id = uuid.uuid4().hex
+        row = {
+            "id": event_id,
+            "donor_id": donor_id,
+            "donor_name": donor_name,
+            "location": location,
+            "date": date,
+            "volunteer_id": volunteer_id,
+            "volunteer_name": volunteer_name,
+            "status": "scheduled",
+            "submission_id": None,
+            "created_at": _now(),
+        }
+        self._donation_events[event_id] = row
+        return self._donation_event_from_row(row)
+
+    def list_donation_events_for_donor(self, donor_id: str) -> list[DonationEvent]:
+        rows = [
+            e for e in self._donation_events.values() if e["donor_id"] == donor_id
+        ]
+        rows.sort(key=lambda e: e["date"])
+        return [self._donation_event_from_row(e) for e in rows]
+
+    def list_donation_events_for_volunteer(
+        self, volunteer_id: str
+    ) -> list[DonationEvent]:
+        rows = [
+            e
+            for e in self._donation_events.values()
+            if e.get("volunteer_id") == volunteer_id
+        ]
+        rows.sort(key=lambda e: e["date"])
+        return [self._donation_event_from_row(e) for e in rows]
+
+    def get_donation_event(self, event_id: str) -> DonationEvent | None:
+        row = self._donation_events.get(event_id)
+        return self._donation_event_from_row(row) if row else None
+
+    def assign_donation_event_volunteer(
+        self,
+        event_id: str,
+        volunteer_id: str | None,
+        volunteer_name: str | None,
+    ) -> DonationEvent:
+        row = self._donation_events.get(event_id)
+        if row is None:
+            raise ValueError("Donation event not found")
+        if row["status"] == "submitted":
+            raise ValueError("Donation event is already submitted")
+        row["volunteer_id"] = volunteer_id
+        row["volunteer_name"] = volunteer_name
+        return self._donation_event_from_row(row)
+
     # -- submissions -----------------------------------------------------
     def create_submission(
         self,
@@ -340,6 +440,7 @@ class LocalStore:
         caption: str | None,
         delivery_role: str | None,
         partner_charity: str | None,
+        donation_event_id: str | None = None,
     ) -> str:
         submission_id = photo_key.split("/")[1] if "/" in photo_key else uuid.uuid4().hex
         self._submissions[submission_id] = {
@@ -353,9 +454,15 @@ class LocalStore:
             "caption": caption,
             "delivery_role": delivery_role,
             "partner_charity": partner_charity,
+            "donation_event_id": donation_event_id,
             "status": "pending",
             "created_at": _now(),
         }
+        if donation_event_id:
+            event = self._donation_events.get(donation_event_id)
+            if event is not None:
+                event["status"] = "submitted"
+                event["submission_id"] = submission_id
         return submission_id
 
     def resolve_donor_id(self, user_id: str, email: str) -> str | None:
@@ -396,6 +503,7 @@ class LocalStore:
             "id": donor_id,
             "name": name,
             "location": "Austin, TX",
+            "country": "United States",
             "story": "Testing the donor dashboard locally.",
             "email": email,
             "user_id": user_id,
@@ -421,6 +529,7 @@ class LocalStore:
             "id": volunteer_id,
             "name": name,
             "location": "Austin, TX",
+            "country": "United States",
             "email": email,
             "user_id": user_id,
             "packets_per_trip": 20,
@@ -472,6 +581,12 @@ class LocalStore:
         s = self._submissions.get(submission_id)
         if s and s["status"] == "pending":
             s["status"] = "rejected"
+            donation_event_id = s.get("donation_event_id")
+            if donation_event_id:
+                event = self._donation_events.get(donation_event_id)
+                if event is not None:
+                    event["status"] = "scheduled"
+                    event["submission_id"] = None
 
     def update_config(self, **fields) -> None:
         for k, v in fields.items():

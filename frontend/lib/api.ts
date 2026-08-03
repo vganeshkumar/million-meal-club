@@ -1,12 +1,14 @@
 import type {
   AuthUser,
   ContentResponse,
+  DonationEvent,
   Donor,
   SignupAdminView,
   SignupPayload,
   SubmissionAdminView,
   SubmissionPayload,
   Volunteer,
+  VolunteerSummary,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "/api";
@@ -101,6 +103,25 @@ export const api = {
     request<void>(`/events/${eventId}/rsvp`, { method: "POST" }),
   cancelRsvp: (eventId: string) =>
     request<void>(`/events/${eventId}/rsvp`, { method: "DELETE" }),
+
+  listVolunteers: () => request<VolunteerSummary[]>("/volunteers"),
+  listMyDonationEvents: () => request<DonationEvent[]>("/donation-events/mine"),
+  createDonationEvent: (payload: {
+    location: string;
+    date: string;
+    volunteer_id?: string;
+  }) =>
+    request<DonationEvent>("/donation-events", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  assignDonationEventVolunteer: (eventId: string, volunteerId: string | null) =>
+    request<DonationEvent>(`/donation-events/${eventId}/volunteer`, {
+      method: "PATCH",
+      body: JSON.stringify({ volunteer_id: volunteerId }),
+    }),
+  listVolunteerAssignedEvents: () =>
+    request<DonationEvent[]>("/donation-events/volunteer-assigned"),
 };
 
 export async function uploadToPresignedUrl(

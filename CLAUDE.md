@@ -55,3 +55,9 @@ than faking it.
   billed AWS resources).
 - Use the `verify` skill after implementing a feature — exercise it end to
   end (both dev servers running, real HTTP calls), not just typecheck/lint.
+- When the user asks to commit a change, after making the commit
+  automatically invoke the `create-pull-request` skill to draft the PR
+  (description, files changed, quality summary covering test coverage/
+  code quality/security posture) and present it for review — do not run
+  `gh pr create` yet at this point. Only submit the PR once the user has
+  reviewed the draft and explicitly approves it.

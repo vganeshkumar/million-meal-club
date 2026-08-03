@@ -13,6 +13,7 @@ from boto3.dynamodb.conditions import Key
 from app.models.domain import (
     ContentResponse,
     Donation,
+    DonationEvent,
     Donor,
     EventItem,
     GalleryPhoto,
@@ -40,6 +41,7 @@ class DynamoStore:
         self._partner_charities = resource.Table(os.environ["PARTNER_CHARITIES_TABLE"])
         self._volunteers = resource.Table(os.environ["VOLUNTEERS_TABLE"])
         self._event_signups = resource.Table(os.environ["EVENT_SIGNUPS_TABLE"])
+        self._donation_events = resource.Table(os.environ["DONATION_EVENTS_TABLE"])
         self._config = resource.Table(os.environ["CONFIG_TABLE"])
 
     def _get_config_item(self) -> dict:
@@ -77,6 +79,7 @@ class DynamoStore:
                     id=d["donor_id"],
                     name=d["name"],
                     location=d.get("location", ""),
+                    country=d.get("country", ""),
                     story=d.get("story", ""),
                     total_meals=int(d.get("total_meals", 0)),
                     donation_count=int(d.get("donation_count", 0)),
@@ -125,6 +128,7 @@ class DynamoStore:
             id=d["donor_id"],
             name=d["name"],
             location=d.get("location", ""),
+            country=d.get("country", ""),
             story=d.get("story", ""),
             total_meals=int(d.get("total_meals", 0)),
             donation_count=int(d.get("donation_count", 0)),
@@ -169,10 +173,26 @@ class DynamoStore:
             id=v["volunteer_id"],
             name=v["name"],
             location=v.get("location", ""),
+            country=v.get("country", ""),
             packets_per_trip=v.get("packets_per_trip"),
             availability=v.get("availability"),
             events=events,
         )
+
+    def list_volunteers(self) -> list[Volunteer]:
+        resp = self._volunteers.scan()
+        return [
+            Volunteer(
+                id=v["volunteer_id"],
+                name=v["name"],
+                location=v.get("location", ""),
+                country=v.get("country", ""),
+                packets_per_trip=v.get("packets_per_trip"),
+                availability=v.get("availability"),
+                events=[],
+            )
+            for v in resp.get("Items", [])
+        ]
 
     def get_or_create_user(
         self, provider: str, subject: str, email: str, name: str
@@ -229,6 +249,7 @@ class DynamoStore:
                 "volunteer_id": volunteer_id,
                 "name": name,
                 "location": payload.location,
+                "country": payload.country,
                 "email": email,
             }
             if payload.packets_per_trip is not None:
@@ -259,6 +280,7 @@ class DynamoStore:
                 "donor_id": donor_id,
                 "name": name,
                 "location": signup.get("location", ""),
+                "country": signup.get("country", ""),
                 "story": signup.get("donor_story", ""),
                 "email": email,
                 "total_meals": 0,
@@ -300,6 +322,96 @@ class DynamoStore:
             Key={"volunteer_id": volunteer_id, "event_id": event_id}
         )
 
+    # -- donation events ---------------------------------------------------
+    def _donation_event_from_item(self, e: dict) -> DonationEvent:
+        return DonationEvent(
+            id=e["event_id"],
+            donor_id=e["donor_id"],
+            donor_name=e["donor_name"],
+            location=e["location"],
+            date=e["date"],
+            volunteer_id=e.get("volunteer_id"),
+            volunteer_name=e.get("volunteer_name"),
+            status=e["status"],
+            submission_id=e.get("submission_id"),
+        )
+
+    def create_donation_event(
+        self,
+        donor_id: str,
+        donor_name: str,
+        location: str,
+        date: str,
+        volunteer_id: str | None,
+        volunteer_name: str | None,
+    ) -> DonationEvent:
+        event_id = uuid.uuid4().hex
+        item = {
+            "event_id": event_id,
+            "donor_id": donor_id,
+            "donor_name": donor_name,
+            "location": location,
+            "date": date,
+            "status": "scheduled",
+            "created_at": _now(),
+        }
+        if volunteer_id:
+            item["volunteer_id"] = volunteer_id
+            item["volunteer_name"] = volunteer_name
+        self._donation_events.put_item(Item=item)
+        return self._donation_event_from_item(item)
+
+    def list_donation_events_for_donor(self, donor_id: str) -> list[DonationEvent]:
+        resp = self._donation_events.query(
+            IndexName="donor-index", KeyConditionExpression=Key("donor_id").eq(donor_id)
+        )
+        items = sorted(resp.get("Items", []), key=lambda e: e["date"])
+        return [self._donation_event_from_item(e) for e in items]
+
+    def list_donation_events_for_volunteer(
+        self, volunteer_id: str
+    ) -> list[DonationEvent]:
+        resp = self._donation_events.query(
+            IndexName="volunteer-index",
+            KeyConditionExpression=Key("volunteer_id").eq(volunteer_id),
+        )
+        items = sorted(resp.get("Items", []), key=lambda e: e["date"])
+        return [self._donation_event_from_item(e) for e in items]
+
+    def get_donation_event(self, event_id: str) -> DonationEvent | None:
+        resp = self._donation_events.get_item(Key={"event_id": event_id})
+        item = resp.get("Item")
+        return self._donation_event_from_item(item) if item else None
+
+    def assign_donation_event_volunteer(
+        self,
+        event_id: str,
+        volunteer_id: str | None,
+        volunteer_name: str | None,
+    ) -> DonationEvent:
+        resp = self._donation_events.get_item(Key={"event_id": event_id})
+        item = resp.get("Item")
+        if item is None:
+            raise ValueError("Donation event not found")
+        if item.get("status") == "submitted":
+            raise ValueError("Donation event is already submitted")
+        if volunteer_id:
+            self._donation_events.update_item(
+                Key={"event_id": event_id},
+                UpdateExpression="SET volunteer_id = :v, volunteer_name = :n",
+                ExpressionAttributeValues={":v": volunteer_id, ":n": volunteer_name},
+            )
+            item["volunteer_id"] = volunteer_id
+            item["volunteer_name"] = volunteer_name
+        else:
+            self._donation_events.update_item(
+                Key={"event_id": event_id},
+                UpdateExpression="REMOVE volunteer_id, volunteer_name",
+            )
+            item.pop("volunteer_id", None)
+            item.pop("volunteer_name", None)
+        return self._donation_event_from_item(item)
+
     def create_submission(
         self,
         donor_id: str,
@@ -311,6 +423,7 @@ class DynamoStore:
         caption: str | None,
         delivery_role: str | None,
         partner_charity: str | None,
+        donation_event_id: str | None = None,
     ) -> str:
         submission_id = photo_key.split("/")[1] if "/" in photo_key else uuid.uuid4().hex
         item = {
@@ -331,7 +444,19 @@ class DynamoStore:
             item["delivery_role"] = delivery_role
         if partner_charity:
             item["partner_charity"] = partner_charity
+        if donation_event_id:
+            item["donation_event_id"] = donation_event_id
         self._submissions.put_item(Item=item)
+        if donation_event_id:
+            self._donation_events.update_item(
+                Key={"event_id": donation_event_id},
+                UpdateExpression="SET #s = :submitted, submission_id = :sub",
+                ExpressionAttributeNames={"#s": "status"},
+                ExpressionAttributeValues={
+                    ":submitted": "submitted",
+                    ":sub": submission_id,
+                },
+            )
         return submission_id
 
     def resolve_donor_id(self, user_id: str, email: str) -> str | None:
@@ -403,6 +528,7 @@ class DynamoStore:
                 "donor_id": donor_id,
                 "name": name,
                 "location": "Austin, TX",
+                "country": "United States",
                 "story": "Testing the donor dashboard locally.",
                 "email": email,
                 "user_id": user_id,
@@ -433,6 +559,7 @@ class DynamoStore:
                 "volunteer_id": volunteer_id,
                 "name": name,
                 "location": "Austin, TX",
+                "country": "United States",
                 "email": email,
                 "user_id": user_id,
                 "packets_per_trip": 20,
@@ -504,6 +631,10 @@ class DynamoStore:
         )
 
     def reject_submission(self, submission_id: str) -> None:
+        resp = self._submissions.get_item(Key={"submission_id": submission_id})
+        s = resp.get("Item")
+        if not s or s.get("status") != "pending":
+            return
         self._submissions.update_item(
             Key={"submission_id": submission_id},
             UpdateExpression="SET #s = :rejected",
@@ -511,6 +642,14 @@ class DynamoStore:
             ExpressionAttributeNames={"#s": "status"},
             ExpressionAttributeValues={":rejected": "rejected", ":pending": "pending"},
         )
+        donation_event_id = s.get("donation_event_id")
+        if donation_event_id:
+            self._donation_events.update_item(
+                Key={"event_id": donation_event_id},
+                UpdateExpression="SET #s = :scheduled REMOVE submission_id",
+                ExpressionAttributeNames={"#s": "status"},
+                ExpressionAttributeValues={":scheduled": "scheduled"},
+            )
 
     def update_config(self, **fields) -> None:
         updates = {k: v for k, v in fields.items() if v is not None}

@@ -8,6 +8,7 @@ from app.routers import (
     admin,
     auth,
     content,
+    donation_events,
     donors,
     signups,
     submissions,
@@ -32,6 +33,7 @@ if os.environ.get("ENV", "dev") == "dev":
 app.include_router(content.router, prefix="/api")
 app.include_router(donors.router, prefix="/api")
 app.include_router(volunteers.router, prefix="/api")
+app.include_router(donation_events.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
 app.include_router(signups.router, prefix="/api")
 app.include_router(uploads.router, prefix="/api")

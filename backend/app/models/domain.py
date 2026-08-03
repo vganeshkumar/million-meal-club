@@ -25,6 +25,7 @@ class Donor(CamelModel):
     id: str
     name: str
     location: str
+    country: str = ""
     story: str
     total_meals: int
     donation_count: int
@@ -61,9 +62,49 @@ class Volunteer(CamelModel):
     id: str
     name: str
     location: str
+    country: str = ""
     packets_per_trip: int | None = None
     availability: str | None = None
     events: list[EventItem]
+
+
+class VolunteerSummary(CamelModel):
+    """Donor-facing directory entry for the donation-event assignment
+    picker — same public fields as Volunteer minus `events` (irrelevant
+    here, and avoids an RSVP join per volunteer just to populate a
+    picker). See specs/features/009-scheduled-donation-events/design.md."""
+
+    id: str
+    name: str
+    location: str
+    country: str = ""
+    packets_per_trip: int | None = None
+    availability: str | None = None
+
+
+DonationEventStatus = Literal["scheduled", "submitted"]
+
+
+class DonationEvent(CamelModel):
+    id: str
+    donor_id: str
+    donor_name: str
+    location: str
+    date: str
+    volunteer_id: str | None = None
+    volunteer_name: str | None = None
+    status: DonationEventStatus = "scheduled"
+    submission_id: str | None = None
+
+
+class CreateDonationEventRequest(BaseModel):
+    location: str
+    date: str
+    volunteer_id: str | None = None
+
+
+class AssignVolunteerRequest(BaseModel):
+    volunteer_id: str | None = None
 
 
 class SiteConfig(CamelModel):
@@ -120,6 +161,7 @@ class SignupRequest(BaseModel):
     mode: Literal["donor", "volunteer"]
     name: str | None = None
     location: str
+    country: str
     notes: str | None = None
     # mode == "donor"
     email: str | None = None
@@ -162,6 +204,7 @@ class SignupAdminView(BaseModel):
     name: str | None = None
     email: str | None = None
     location: str
+    country: str = ""
     notes: str | None = None
     packet_count: int | None = None
     delivery_role: Literal["self", "volunteer_needed"] | None = None
@@ -195,6 +238,10 @@ class SubmissionRequest(BaseModel):
     # donor), and the resulting donation is attributed to this donor_id
     # directly instead of the submitter's own linked donor.
     donor_id: str | None = None
+    # Set when submitting against a pre-scheduled DonationEvent — takes
+    # precedence over donor_id if both are somehow present. See
+    # specs/features/009-scheduled-donation-events/design.md.
+    donation_event_id: str | None = None
 
 
 class SubmissionResponse(BaseModel):
@@ -210,6 +257,7 @@ class SubmissionAdminView(BaseModel):
     photo_url: str
     receipt_url: str | None = None
     caption: str | None = None
+    donation_event_id: str | None = None
     status: Literal["pending", "approved", "rejected"]
     created_at: str
 
