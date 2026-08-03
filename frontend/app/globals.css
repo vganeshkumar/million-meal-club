@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-display: var(--font-bricolage), sans-serif;
+  --font-body: var(--font-karla), sans-serif;
+}
+
+@theme {
+  --color-bg: oklch(97% 0.014 95);
+  --color-bg-alt: oklch(94% 0.025 95);
+  --color-card: oklch(99% 0.006 95);
+  --color-border: oklch(89% 0.02 95);
+  --color-border-strong: oklch(80% 0.02 95);
+  --color-ink: oklch(21% 0.03 155);
+  --color-muted: oklch(40% 0.03 150);
+  --color-muted-2: oklch(45% 0.03 150);
+  --color-muted-3: oklch(50% 0.03 150);
+
+  --color-green: oklch(38% 0.1 155);
+  --color-green-soft: oklch(94% 0.03 155 / 0.5);
+  --color-amber: oklch(68% 0.15 55);
+
+  --color-ink-fg: oklch(97% 0.01 95);
+  --color-ink-muted: oklch(85% 0.01 95);
+  --color-ink-border: oklch(34% 0.02 155);
+  --color-ink-chip: oklch(30% 0.02 155);
+
+  --color-modal-backdrop: oklch(21% 0.03 155 / 0.55);
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@keyframes stripe-placeholder {
+  0% {
+    background-position: 0 0;
+  }
+}
+
+.placeholder-photo {
+  background-image: repeating-linear-gradient(
+    135deg,
+    oklch(93% 0.02 95) 0px,
+    oklch(93% 0.02 95) 10px,
+    oklch(96% 0.015 95) 10px,
+    oklch(96% 0.015 95) 20px
+  );
+}

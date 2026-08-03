@@ -1,0 +1,57 @@
+# Builds the backend container image, pushes it to ECR, and updates the
+# Lambda function to use it. Needs these repo secrets/vars set after
+# infra/envs/<env> has been applied at least once (see infra/README.md):
+#   secrets.AWS_ROLE_ARN     — an IAM role this workflow can assume (OIDC)
+#   vars.AWS_REGION
+#   vars.ECR_REPOSITORY_URL  — from `terraform output api_ecr_repository_url`
+#   vars.LAMBDA_FUNCTION_NAME — from `terraform output lambda_function_name`
+#
+# Until those are set, this workflow will fail at the "configure AWS
+# credentials" step — that's expected until infra has been applied once
+# (see infra/README.md "A placeholder Lambda container image" for the
+# very-first push, which must happen manually before Terraform can create
+# the Lambda function at all).
+
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy-backend.yml"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr-login
+
+      - name: Build and push image
+        run: |
+          docker build -t "${{ vars.ECR_REPOSITORY_URL }}:${{ github.sha }}" \
+                       -t "${{ vars.ECR_REPOSITORY_URL }}:latest" .
+          docker push "${{ vars.ECR_REPOSITORY_URL }}:${{ github.sha }}"
+          docker push "${{ vars.ECR_REPOSITORY_URL }}:latest"
+
+      - name: Update Lambda function code
+        run: |
+          aws lambda update-function-code \
+            --function-name "${{ vars.LAMBDA_FUNCTION_NAME }}" \
+            --image-uri "${{ vars.ECR_REPOSITORY_URL }}:${{ github.sha }}"
