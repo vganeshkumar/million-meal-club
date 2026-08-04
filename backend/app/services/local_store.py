@@ -99,7 +99,6 @@ class LocalStore:
                     "location": "East Austin",
                     "meals": 220,
                     "caption": "Delivered with two volunteers to the community center.",
-                    "photo_key": None,
                 },
                 {
                     "id": "don-1b",
@@ -107,7 +106,6 @@ class LocalStore:
                     "location": "East Austin",
                     "meals": 180,
                     "caption": "Second monthly drop-off, same route.",
-                    "photo_key": None,
                 },
             ],
             d2: [
@@ -117,7 +115,6 @@ class LocalStore:
                     "location": "North Austin",
                     "meals": 150,
                     "caption": "Delivered during my regular route stop.",
-                    "photo_key": None,
                 }
             ],
             d3: [
@@ -127,7 +124,6 @@ class LocalStore:
                     "location": "Cedar Park",
                     "meals": 90,
                     "caption": "First delivery — more to come!",
-                    "photo_key": None,
                 }
             ],
         }
@@ -264,7 +260,12 @@ class LocalStore:
                     location=x["location"],
                     meals=x["meals"],
                     caption=x["caption"],
-                    photo_url=blob.public_url(x["photo_key"]) if x.get("photo_key") else None,
+                    photo_urls=[blob.public_url(k) for k in x["photo_keys"]]
+                    if x.get("photo_keys")
+                    else None,
+                    cover_photo_url=blob.public_url(x["cover_photo_key"])
+                    if x.get("cover_photo_key")
+                    else None,
                 )
                 for x in sorted(donations, key=lambda x: x["date"], reverse=True)
             ],
@@ -516,7 +517,8 @@ class LocalStore:
             delivery_role=e.get("delivery_role"),
             partner_charity=e.get("partner_charity"),
             notes=e.get("notes"),
-            photo_url=e.get("photo_url"),
+            photo_urls=e.get("photo_urls"),
+            cover_photo_url=e.get("cover_photo_url"),
             caption=e.get("caption"),
             latitude=e.get("latitude"),
             longitude=e.get("longitude"),
@@ -653,21 +655,23 @@ class LocalStore:
         submitted_by_user_id: str,
         location: str,
         meals: int,
-        photo_key: str,
+        photo_keys: list[str],
+        cover_photo_key: str,
         receipt_key: str | None,
         caption: str | None,
         delivery_role: str | None,
         partner_charity: str | None,
         donation_event_id: str | None = None,
     ) -> str:
-        submission_id = photo_key.split("/")[1] if "/" in photo_key else uuid.uuid4().hex
+        submission_id = uuid.uuid4().hex
         self._submissions[submission_id] = {
             "submission_id": submission_id,
             "user_id": submitted_by_user_id,
             "donor_id": donor_id,
             "location": location,
             "meals": meals,
-            "photo_key": photo_key,
+            "photo_keys": photo_keys,
+            "cover_photo_key": cover_photo_key,
             "receipt_key": receipt_key,
             "caption": caption,
             "delivery_role": delivery_role,
@@ -738,7 +742,8 @@ class LocalStore:
             out.append(
                 {
                     **s,
-                    "photo_url": blob.presign_get(s["photo_key"]),
+                    "photo_urls": [blob.presign_get(k) for k in s["photo_keys"]],
+                    "cover_photo_url": blob.presign_get(s["cover_photo_key"]),
                     "receipt_url": blob.presign_get(s["receipt_key"])
                     if s.get("receipt_key")
                     else None,
@@ -752,7 +757,11 @@ class LocalStore:
             return
         blob = get_blob_store()
         donation_id = uuid.uuid4().hex
-        approved_key = blob.copy_to_approved(s["photo_key"], donation_id)
+        approved_keys = [
+            blob.copy_to_approved(k, donation_id) for k in s["photo_keys"]
+        ]
+        cover_idx = s["photo_keys"].index(s["cover_photo_key"])
+        approved_cover_key = approved_keys[cover_idx]
         donor_id = s["donor_id"]
         self._donations.setdefault(donor_id, []).append(
             {
@@ -761,7 +770,8 @@ class LocalStore:
                 "location": s["location"],
                 "meals": s["meals"],
                 "caption": s.get("caption") or "",
-                "photo_key": approved_key,
+                "photo_keys": approved_keys,
+                "cover_photo_key": approved_cover_key,
                 "receipt_key": s.get("receipt_key"),
                 "delivery_role": s.get("delivery_role"),
                 "partner_charity": s.get("partner_charity"),
@@ -774,7 +784,8 @@ class LocalStore:
             event = self._donation_events.get(donation_event_id)
             if event is not None:
                 event["status"] = "completed"
-                event["photo_url"] = blob.public_url(approved_key)
+                event["photo_urls"] = [blob.public_url(k) for k in approved_keys]
+                event["cover_photo_url"] = blob.public_url(approved_cover_key)
                 event["caption"] = s.get("caption") or None
 
     def reject_submission(self, submission_id: str) -> None:

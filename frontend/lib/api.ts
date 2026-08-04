@@ -194,3 +194,18 @@ export async function uploadToPresignedUrl(
     throw new Error(`Upload failed: ${res.status}`);
   }
 }
+
+// Presigns + uploads each photo in order, returning the resulting keys.
+// See specs/features/025-multi-photo-proof-with-cover/design.md.
+export async function uploadPhotos(files: File[]): Promise<string[]> {
+  const keys: string[] = [];
+  for (const file of files) {
+    const presign = await api.presignUpload({
+      content_type: file.type,
+      size: file.size,
+    });
+    await uploadToPresignedUrl(presign.upload_url, file);
+    keys.push(presign.key);
+  }
+  return keys;
+}

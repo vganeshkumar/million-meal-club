@@ -164,7 +164,7 @@ def test_cannot_edit_an_already_submitted_event(client):
         json={
             "location": "East Austin",
             "meals": 50,
-            "photo_key": "uploads/fake-edit-key.jpg",
+            "photo_keys": ["uploads/fake-edit-key.jpg"],
             "donation_event_id": event_id,
         },
     )

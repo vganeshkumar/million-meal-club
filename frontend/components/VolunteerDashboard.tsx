@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api, ApiError, uploadToPresignedUrl } from "@/lib/api";
+import { api, ApiError, uploadPhotos, uploadToPresignedUrl } from "@/lib/api";
 import { COUNTRIES } from "@/lib/countries";
 import { EditDonationEventModal } from "@/components/EditDonationEventModal";
+import { PhotoProofPicker } from "@/components/PhotoProofPicker";
 import type {
   DonationEvent,
   EventItem,
@@ -14,7 +15,6 @@ import type {
 const fieldClass =
   "rounded-[10px] border border-border-strong bg-bg px-3.5 py-3 text-[15px] font-body";
 const labelClass = "flex flex-col gap-1.5 text-[13px] font-bold";
-const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const DUMMY_LOGIN_ENABLED =
   process.env.NEXT_PUBLIC_ENABLE_DUMMY_LOGIN === "true";
 
@@ -429,6 +429,9 @@ function SubmitForDonorForm({
   const [errorMessage, setErrorMessage] = useState("");
   const [selectedEventId, setSelectedEventId] = useState("");
   const [location, setLocation] = useState("");
+  const [mealsDelivered, setMealsDelivered] = useState("");
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [coverIndex, setCoverIndex] = useState(0);
 
   const selectedEvent = assignedEvents.find((e) => e.id === selectedEventId);
 
@@ -436,34 +439,27 @@ function SubmitForDonorForm({
     setSelectedEventId(eventId);
     const event = assignedEvents.find((e) => e.id === eventId);
     setLocation(event ? event.location : "");
+    setMealsDelivered(event?.packetCount ? String(event.packetCount) : "");
+    setPhotoFiles([]);
+    setCoverIndex(0);
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
     const data = new FormData(form);
-    const photo = data.get("photo") as File | null;
     const receipt = data.get("receipt") as File | null;
 
-    if (!photo || photo.size === 0) {
+    if (photoFiles.length === 0) {
       setStatus("error");
       setErrorMessage("Please choose a photo.");
-      return;
-    }
-    if (photo.size > MAX_UPLOAD_BYTES) {
-      setStatus("error");
-      setErrorMessage("Photo must be under 10MB.");
       return;
     }
 
     setStatus("uploading");
     setErrorMessage("");
     try {
-      const photoPresign = await api.presignUpload({
-        content_type: photo.type,
-        size: photo.size,
-      });
-      await uploadToPresignedUrl(photoPresign.upload_url, photo);
+      const photoKeys = await uploadPhotos(photoFiles);
 
       let receiptKey: string | undefined;
       if (receipt && receipt.size > 0) {
@@ -479,13 +475,17 @@ function SubmitForDonorForm({
         donation_event_id: selectedEventId,
         location,
         meals: Number(data.get("meals_delivered") ?? 0),
-        photo_key: photoPresign.key,
+        photo_keys: photoKeys,
+        cover_photo_key: photoKeys[coverIndex],
         receipt_key: receiptKey,
         caption: (data.get("caption") as string) || undefined,
       });
       setStatus("done");
       setSelectedEventId("");
       setLocation("");
+      setMealsDelivered("");
+      setPhotoFiles([]);
+      setCoverIndex(0);
       form.reset();
     } catch (err) {
       setStatus("error");
@@ -563,21 +563,19 @@ function SubmitForDonorForm({
                 type="number"
                 name="meals_delivered"
                 min={1}
+                value={mealsDelivered}
+                onChange={(e) => setMealsDelivered(e.target.value)}
                 required
                 className={fieldClass}
               />
             </label>
           </div>
-          <label className={labelClass}>
-            Photo Proof
-            <input
-              type="file"
-              name="photo"
-              accept="image/*"
-              required
-              className="px-1 py-2.5 text-sm"
-            />
-          </label>
+          <PhotoProofPicker
+            files={photoFiles}
+            onFilesChange={setPhotoFiles}
+            coverIndex={coverIndex}
+            onCoverIndexChange={setCoverIndex}
+          />
           <label className={labelClass}>
             Receipt (optional)
             <input

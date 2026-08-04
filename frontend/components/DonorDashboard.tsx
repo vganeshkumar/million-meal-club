@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { api, ApiError, uploadToPresignedUrl } from "@/lib/api";
+import { api, ApiError, uploadPhotos, uploadToPresignedUrl } from "@/lib/api";
 import { COUNTRIES } from "@/lib/countries";
 import { AddressMapPreview } from "@/components/AddressMapPreview";
 import { EditDonationEventModal } from "@/components/EditDonationEventModal";
+import { PhotoProofPicker } from "@/components/PhotoProofPicker";
 import type {
   Donation,
   DonationEvent,
@@ -18,7 +19,6 @@ const fieldClass =
 const labelClass = "flex flex-col gap-1.5 text-[13px] font-bold";
 const DUMMY_LOGIN_ENABLED =
   process.env.NEXT_PUBLIC_ENABLE_DUMMY_LOGIN === "true";
-const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 function navButtonClass(active: boolean): string {
   return `cursor-pointer rounded-lg px-3.5 py-2.5 text-left text-sm font-bold ${
@@ -703,11 +703,11 @@ function CompletedEventsSection({ donor }: { donor: Donor }) {
                 </p>
               )}
             </div>
-            {d.photoUrl && (
+            {d.coverPhotoUrl && (
               <span className="block h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-border">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={d.photoUrl}
+                  src={d.coverPhotoUrl}
                   alt="Delivery proof"
                   className="h-full w-full object-cover"
                 />
@@ -757,14 +757,34 @@ function CompletedDonationModal({
         {donation.caption && (
           <p className="m-0 text-sm text-muted italic">{donation.caption}</p>
         )}
-        {donation.photoUrl && (
+        {donation.coverPhotoUrl && (
           <div className="overflow-hidden rounded-2xl border border-border">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={donation.photoUrl}
+              src={donation.coverPhotoUrl}
               alt="Delivery proof"
               className="w-full object-cover"
             />
+          </div>
+        )}
+        {(donation.photoUrls?.length ?? 0) > 1 && (
+          <div className="grid grid-cols-4 gap-2">
+            {donation.photoUrls!.map((url) => (
+              <a
+                key={url}
+                href={url}
+                target="_blank"
+                rel="noreferrer"
+                className="block aspect-square overflow-hidden rounded-lg border border-border"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={url}
+                  alt="Delivery proof"
+                  className="h-full w-full object-cover"
+                />
+              </a>
+            ))}
           </div>
         )}
         {donation.receiptUrl && (
@@ -802,6 +822,8 @@ function SubmitProofSection({
     "self" | "volunteer_needed" | ""
   >("");
   const [partnerCharity, setPartnerCharity] = useState("");
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [coverIndex, setCoverIndex] = useState(0);
 
   const selectedEvent = scheduledEvents.find((e) => e.id === selectedEventId);
 
@@ -813,6 +835,8 @@ function SubmitProofSection({
     setMealsDelivered(event?.packetCount ? String(event.packetCount) : "");
     setDeliveryRole(event?.deliveryRole ?? "");
     setPartnerCharity(event?.partnerCharity ?? "");
+    setPhotoFiles([]);
+    setCoverIndex(0);
   }
 
   function handleDeliveryRoleChange(value: "self" | "volunteer_needed") {
@@ -829,28 +853,18 @@ function SubmitProofSection({
     e.preventDefault();
     const form = e.currentTarget;
     const data = new FormData(form);
-    const photo = data.get("photo") as File | null;
     const receipt = data.get("receipt") as File | null;
 
-    if (!photo || photo.size === 0) {
+    if (photoFiles.length === 0) {
       setStatus("error");
       setErrorMessage("Please choose a photo.");
-      return;
-    }
-    if (photo.size > MAX_UPLOAD_BYTES) {
-      setStatus("error");
-      setErrorMessage("Photo must be under 10MB.");
       return;
     }
 
     setStatus("uploading");
     setErrorMessage("");
     try {
-      const photoPresign = await api.presignUpload({
-        content_type: photo.type,
-        size: photo.size,
-      });
-      await uploadToPresignedUrl(photoPresign.upload_url, photo);
+      const photoKeys = await uploadPhotos(photoFiles);
 
       let receiptKey: string | undefined;
       if (receipt && receipt.size > 0) {
@@ -865,7 +879,8 @@ function SubmitProofSection({
       await api.submitProof({
         location,
         meals: Number(data.get("meals_delivered") ?? 0),
-        photo_key: photoPresign.key,
+        photo_keys: photoKeys,
+        cover_photo_key: photoKeys[coverIndex],
         receipt_key: receiptKey,
         caption: (data.get("caption") as string) || undefined,
         delivery_role:
@@ -880,6 +895,8 @@ function SubmitProofSection({
       setMealsDelivered("");
       setDeliveryRole("");
       setPartnerCharity("");
+      setPhotoFiles([]);
+      setCoverIndex(0);
       form.reset();
       onSubmitted();
     } catch (err) {
@@ -934,20 +951,6 @@ function SubmitProofSection({
               ))}
             </select>
           </label>
-          {selectedEvent?.volunteerName && (
-            <label className={labelClass}>
-              Assigned volunteer
-              <select
-                disabled
-                value={selectedEvent.volunteerId ?? ""}
-                className={fieldClass}
-              >
-                <option value={selectedEvent.volunteerId ?? ""}>
-                  {selectedEvent.volunteerName}
-                </option>
-              </select>
-            </label>
-          )}
           <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-4">
             <label className={labelClass}>
               Location
@@ -974,16 +977,12 @@ function SubmitProofSection({
               />
             </label>
           </div>
-          <label className={labelClass}>
-            Photo Proof
-            <input
-              type="file"
-              name="photo"
-              accept="image/*"
-              required
-              className="px-1 py-2.5 text-sm"
-            />
-          </label>
+          <PhotoProofPicker
+            files={photoFiles}
+            onFilesChange={setPhotoFiles}
+            coverIndex={coverIndex}
+            onCoverIndexChange={setCoverIndex}
+          />
           <label className={labelClass}>
             Receipt (optional)
             <input
@@ -1015,6 +1014,20 @@ function SubmitProofSection({
               />{" "}
               A volunteer delivered it for me
             </label>
+            {deliveryRole === "volunteer_needed" && selectedEvent?.volunteerName && (
+              <label className={labelClass}>
+                Assigned volunteer
+                <select
+                  disabled
+                  value={selectedEvent.volunteerId ?? ""}
+                  className={fieldClass}
+                >
+                  <option value={selectedEvent.volunteerId ?? ""}>
+                    {selectedEvent.volunteerName}
+                  </option>
+                </select>
+              </label>
+            )}
           </div>
           <label className={labelClass}>
             Delivered through a partner charity? (optional)

@@ -383,19 +383,27 @@ function PendingSubmissions() {
               {s.meals} meals delivered
             </p>
             <div className="mb-3 grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3">
-              <a
-                href={s.photo_url}
-                target="_blank"
-                rel="noreferrer"
-                className="block aspect-[4/3] overflow-hidden rounded-xl border border-border"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={s.photo_url}
-                  alt="Delivery proof"
-                  className="h-full w-full object-cover"
-                />
-              </a>
+              {s.photo_urls.map((url) => (
+                <a
+                  key={url}
+                  href={url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="relative block aspect-[4/3] overflow-hidden rounded-xl border border-border"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={url}
+                    alt="Delivery proof"
+                    className="h-full w-full object-cover"
+                  />
+                  {url === s.cover_photo_url && (
+                    <span className="absolute bottom-0 left-0 w-full bg-[var(--accent-green)] py-0.5 text-center text-[10px] font-bold text-ink-fg">
+                      Cover
+                    </span>
+                  )}
+                </a>
+              ))}
               {s.receipt_url && (
                 <a
                   href={s.receipt_url}

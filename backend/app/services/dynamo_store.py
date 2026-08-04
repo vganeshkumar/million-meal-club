@@ -192,7 +192,12 @@ class DynamoStore:
                     location=x["location"],
                     meals=int(x["meals"]),
                     caption=x.get("caption", ""),
-                    photo_url=blob.public_url(x["photo_key"]) if x.get("photo_key") else None,
+                    photo_urls=[blob.public_url(k) for k in x["photo_keys"]]
+                    if x.get("photo_keys")
+                    else None,
+                    cover_photo_url=blob.public_url(x["cover_photo_key"])
+                    if x.get("cover_photo_key")
+                    else None,
                 )
                 for x in donations
             ],
@@ -548,7 +553,8 @@ class DynamoStore:
             delivery_role=e.get("delivery_role"),
             partner_charity=e.get("partner_charity"),
             notes=e.get("notes"),
-            photo_url=e.get("photo_url"),
+            photo_urls=e.get("photo_urls"),
+            cover_photo_url=e.get("cover_photo_url"),
             caption=e.get("caption"),
             latitude=float(latitude) if latitude is not None else None,
             longitude=float(longitude) if longitude is not None else None,
@@ -755,21 +761,23 @@ class DynamoStore:
         submitted_by_user_id: str,
         location: str,
         meals: int,
-        photo_key: str,
+        photo_keys: list[str],
+        cover_photo_key: str,
         receipt_key: str | None,
         caption: str | None,
         delivery_role: str | None,
         partner_charity: str | None,
         donation_event_id: str | None = None,
     ) -> str:
-        submission_id = photo_key.split("/")[1] if "/" in photo_key else uuid.uuid4().hex
+        submission_id = uuid.uuid4().hex
         item = {
             "submission_id": submission_id,
             "user_id": submitted_by_user_id,
             "donor_id": donor_id,
             "location": location,
             "meals": meals,
-            "photo_key": photo_key,
+            "photo_keys": photo_keys,
+            "cover_photo_key": cover_photo_key,
             "status": "pending",
             "created_at": _now(),
         }
@@ -888,7 +896,8 @@ class DynamoStore:
             out.append(
                 {
                     **s,
-                    "photo_url": blob.presign_get(s["photo_key"]),
+                    "photo_urls": [blob.presign_get(k) for k in s["photo_keys"]],
+                    "cover_photo_url": blob.presign_get(s["cover_photo_key"]),
                     "receipt_url": blob.presign_get(s["receipt_key"])
                     if s.get("receipt_key")
                     else None,
@@ -904,7 +913,11 @@ class DynamoStore:
 
         blob = get_blob_store()
         donation_id = uuid.uuid4().hex
-        approved_key = blob.copy_to_approved(s["photo_key"], donation_id)
+        approved_keys = [
+            blob.copy_to_approved(k, donation_id) for k in s["photo_keys"]
+        ]
+        cover_idx = list(s["photo_keys"]).index(s["cover_photo_key"])
+        approved_cover_key = approved_keys[cover_idx]
         donor_id = s["donor_id"]
 
         donation_item = {
@@ -914,7 +927,8 @@ class DynamoStore:
             "location": s["location"],
             "meals": s["meals"],
             "caption": s.get("caption", ""),
-            "photo_key": approved_key,
+            "photo_keys": approved_keys,
+            "cover_photo_key": approved_cover_key,
             "status": "approved",
         }
         if s.get("delivery_role"):
@@ -945,11 +959,15 @@ class DynamoStore:
         if donation_event_id:
             self._donation_events.update_item(
                 Key={"event_id": donation_event_id},
-                UpdateExpression="SET #s = :completed, photo_url = :photo_url, caption = :caption",
+                UpdateExpression=(
+                    "SET #s = :completed, photo_urls = :photo_urls, "
+                    "cover_photo_url = :cover_photo_url, caption = :caption"
+                ),
                 ExpressionAttributeNames={"#s": "status"},
                 ExpressionAttributeValues={
                     ":completed": "completed",
-                    ":photo_url": blob.public_url(approved_key),
+                    ":photo_urls": [blob.public_url(k) for k in approved_keys],
+                    ":cover_photo_url": blob.public_url(approved_cover_key),
                     ":caption": s.get("caption") or "",
                 },
             )
