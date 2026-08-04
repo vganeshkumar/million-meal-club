@@ -23,7 +23,6 @@ export function SignInModal({ open, onClose, onSignedIn }: SignInModalProps) {
   const [pending, setPending] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"admin" | "donor" | "volunteer">("donor");
 
   if (!open) return null;
 
@@ -60,7 +59,7 @@ export function SignInModal({ open, onClose, onSignedIn }: SignInModalProps) {
     setPending(true);
     setError("");
     try {
-      onSignedIn(await api.signInDummy(username, password, role));
+      onSignedIn(await api.signInDummy(username, password));
     } catch (err) {
       setError(
         err instanceof ApiError && err.status === 401
@@ -131,24 +130,13 @@ export function SignInModal({ open, onClose, onSignedIn }: SignInModalProps) {
             className="mt-6 flex flex-col gap-3 rounded-2xl border border-dashed border-border-strong p-5"
           >
             <p className="m-0 text-xs font-bold text-muted-2 uppercase">
-              Local dev only — test as
+              Local dev only
             </p>
-            <div className="flex gap-2">
-              {(["admin", "donor", "volunteer"] as const).map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => setRole(r)}
-                  className={`flex-1 cursor-pointer rounded-full border px-2 py-2 text-xs font-bold capitalize ${
-                    role === r
-                      ? "border-[var(--accent-green)] bg-[var(--accent-green)] text-ink-fg"
-                      : "border-border-strong bg-transparent text-muted"
-                  }`}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
+            <p className="m-0 text-xs leading-[1.5] text-muted-2">
+              Sign in as admin (username <code>dummy_user</code>) or as an
+              approved donor/volunteer using the username shown on their
+              dashboard — same password either way.
+            </p>
             <label className={labelClass}>
               Username
               <input

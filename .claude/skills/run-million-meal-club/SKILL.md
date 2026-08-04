@@ -45,6 +45,12 @@ windows open (harmless) — just ends the dev servers running in them.
 - `ADMIN_EMAILS` defaults to the founder's email so `/api/admin/*` routes
   are testable locally out of the box; override by exporting `ADMIN_EMAILS`
   before running `start.sh` if needed.
+- `GEOAPIFY_API_KEY` is empty by default (donation-event map images fall
+  back to address-only). Export it before running `start.sh` to enable the
+  map locally — see
+  `specs/features/023-event-location-time-and-sharing/design.md`. The
+  frontend's matching `NEXT_PUBLIC_GEOAPIFY_API_KEY` lives in
+  `frontend/.env.local` (gitignored) and is set independently.
 - Real Google/Facebook sign-in still needs OAuth app credentials that
   haven't been provisioned yet — see
   `specs/features/001-oauth-login/requirements.md`. Everything else

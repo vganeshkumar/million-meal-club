@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { COUNTRIES } from "@/lib/countries";
 import type { AuthUser, JoinMode, PartnerCharity } from "@/lib/types";
@@ -20,6 +20,53 @@ export function JoinInForm({ user, partnerCharities }: JoinInFormProps) {
     "idle",
   );
   const [errorMessage, setErrorMessage] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
+  const [isValid, setIsValid] = useState(false);
+  const selfRoleRef = useRef<HTMLInputElement>(null);
+  const volunteerRoleRef = useRef<HTMLInputElement>(null);
+  const partnerCharityRef = useRef<HTMLSelectElement>(null);
+
+  // Delivery role and partner charity are mutually exclusive, not just
+  // an OR-group at submit time (see recomputeValidity below) — picking
+  // one clears the other, since only one delivery method applies.
+  function handleDeliveryRoleChange() {
+    if (partnerCharityRef.current) partnerCharityRef.current.value = "";
+  }
+
+  function handlePartnerCharityChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    if (!e.target.value) return;
+    if (selfRoleRef.current) selfRoleRef.current.checked = false;
+    if (volunteerRoleRef.current) volunteerRoleRef.current.checked = false;
+  }
+
+  function recomputeValidity() {
+    const form = formRef.current;
+    if (!form) {
+      setIsValid(false);
+      return;
+    }
+    let valid = form.checkValidity();
+    if (mode === "donor") {
+      // delivery_role and partner_charity aren't each independently
+      // required — self-deliver, need-a-volunteer, and via-a-partner-
+      // charity are three mutually exclusive ways to describe delivery,
+      // and at least one of the three must be picked. Native `required`
+      // can't express that OR across a radio group and a separate
+      // select, so it's checked here instead of via checkValidity().
+      const data = new FormData(form);
+      const hasDeliveryRole = Boolean(data.get("role"));
+      const hasPartnerCharity = Boolean(data.get("partner_charity"));
+      valid = valid && (hasDeliveryRole || hasPartnerCharity);
+    }
+    setIsValid(valid);
+  }
+
+  // The *set* of required fields changes when the mode toggles (donor vs
+  // volunteer) or when sign-in state flips the Name+Email fields in/out —
+  // neither of those is itself a field value changing, so they need their
+  // own recompute beyond the form's onChange below. Runs after the DOM
+  // reflects the new field set (effect, not render-time).
+  useEffect(recomputeValidity, [mode, user]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -62,6 +109,14 @@ export function JoinInForm({ user, partnerCharities }: JoinInFormProps) {
           mode === "volunteer"
             ? (form.get("availability") as string) || undefined
             : undefined,
+        volunteering_history:
+          mode === "volunteer"
+            ? (form.get("volunteering_history") as string) || undefined
+            : undefined,
+        references:
+          mode === "volunteer"
+            ? (form.get("references") as string) || undefined
+            : undefined,
       });
       setStatus("done");
     } catch (err) {
@@ -78,7 +133,7 @@ export function JoinInForm({ user, partnerCharities }: JoinInFormProps) {
     return (
       <div className="flex flex-col gap-4 rounded-3xl border border-border bg-card p-[clamp(24px,3vw,40px)] text-center">
         <p className="m-0 text-lg font-bold text-[var(--accent-green)]">
-          {mode === "donor" ? "Application received!" : "You're in! Thank you."}
+          Application received!
         </p>
         <p className="m-0 text-sm text-muted">
           The founder will personally follow up with next steps.
@@ -89,7 +144,9 @@ export function JoinInForm({ user, partnerCharities }: JoinInFormProps) {
 
   return (
     <form
+      ref={formRef}
       onSubmit={handleSubmit}
+      onChange={recomputeValidity}
       className="flex flex-col gap-4 rounded-3xl border border-border bg-card p-[clamp(24px,3vw,40px)]"
     >
       <div className="flex gap-2.5">
@@ -169,23 +226,43 @@ export function JoinInForm({ user, partnerCharities }: JoinInFormProps) {
               type="number"
               name="packets"
               min={1}
+              required
               className={fieldClass}
             />
           </label>
           <div className="flex flex-col gap-2 text-[13px] font-bold">
-            Delivery role
+            Delivery role (required unless giving through a partner charity
+            below)
             <label className="flex items-center gap-2 text-[15px] font-medium">
-              <input type="radio" name="role" value="self" /> I&apos;ll
-              deliver it myself
+              <input
+                ref={selfRoleRef}
+                type="radio"
+                name="role"
+                value="self"
+                onChange={handleDeliveryRoleChange}
+              />{" "}
+              I&apos;ll deliver it myself
             </label>
             <label className="flex items-center gap-2 text-[15px] font-medium">
-              <input type="radio" name="role" value="volunteer_needed" /> I
-              need a volunteer to collect &amp; deliver
+              <input
+                ref={volunteerRoleRef}
+                type="radio"
+                name="role"
+                value="volunteer_needed"
+                onChange={handleDeliveryRoleChange}
+              />{" "}
+              I need a volunteer to collect &amp; deliver
             </label>
           </div>
           <label className={labelClass}>
             Not sure of a location? Give through a partner charity instead
-            <select name="partner_charity" className={fieldClass}>
+            (required if no delivery role is picked above)
+            <select
+              ref={partnerCharityRef}
+              name="partner_charity"
+              onChange={handlePartnerCharityChange}
+              className={fieldClass}
+            >
               <option value="">— None, I have my own location —</option>
               {partnerCharities.map((c) => (
                 <option key={c.id} value={c.name}>
@@ -232,6 +309,7 @@ export function JoinInForm({ user, partnerCharities }: JoinInFormProps) {
               type="number"
               name="capacity"
               min={1}
+              required
               className={fieldClass}
             />
           </label>
@@ -241,7 +319,26 @@ export function JoinInForm({ user, partnerCharities }: JoinInFormProps) {
               type="text"
               name="availability"
               placeholder="e.g. weekends, evenings, flexible"
+              required
               className={fieldClass}
+            />
+          </label>
+          <label className={labelClass}>
+            Prior Volunteering Experience (optional)
+            <textarea
+              name="volunteering_history"
+              rows={3}
+              placeholder="Have you volunteered with us or elsewhere before? Tell us about it."
+              className={`${fieldClass} resize-y`}
+            />
+          </label>
+          <label className={labelClass}>
+            Donor References (optional)
+            <textarea
+              name="references"
+              rows={2}
+              placeholder="Name and contact info for any donors who can vouch for you"
+              className={`${fieldClass} resize-y`}
             />
           </label>
         </>
@@ -258,21 +355,20 @@ export function JoinInForm({ user, partnerCharities }: JoinInFormProps) {
 
       <button
         type="submit"
-        disabled={status === "submitting"}
+        disabled={status === "submitting" || !isValid}
         className="mt-2 cursor-pointer rounded-full border-none bg-[var(--accent-green)] py-4 text-base font-bold text-ink-fg disabled:opacity-60"
       >
         {status === "submitting"
           ? "Submitting…"
           : mode === "volunteer"
-            ? "Register As A Volunteer"
+            ? "Submit Volunteer Application"
             : "Submit Donor Application"}
       </button>
-      {mode === "donor" && (
-        <p className="m-0 text-center text-[12.5px] text-muted-3">
-          This is an application, not an instant sign-up — donor spots are
-          limited and reviewed by invitation.
-        </p>
-      )}
+      <p className="m-0 text-center text-[12.5px] text-muted-3">
+        {mode === "donor"
+          ? "This is an application, not an instant sign-up — donor spots are limited and reviewed by invitation."
+          : "This is an application, not an instant sign-up — new volunteers are reviewed before being linked to your account."}
+      </p>
     </form>
   );
 }

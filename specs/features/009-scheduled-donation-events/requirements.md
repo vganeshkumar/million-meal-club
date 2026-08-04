@@ -109,9 +109,18 @@ wants volunteers to browse and claim unassigned events themselves.
   as-is (see "Submitting proof against a donation event" above); this spec
   is additive.
 - A public/browsable list of unassigned donation events for volunteers to
-  self-claim (see "Open question" above).
+  self-claim (see "Open question" above) — **note:** a *read-only* public
+  feed of donation events (no claiming) was added later, see
+  [[../014-homepage-scheduled-events/requirements]]; that's a different,
+  narrower thing than this bullet.
 - Editing an event's location/date after creation (only the volunteer
   assignment is editable pre-submission; get location/date right at
   creation, or cancel — there's no cancel/delete either, out of scope).
 - Any admin-facing view of donation events (the founder already reviews
   the resulting submissions exactly as before).
+
+**Update, 2026-08-03 (later)**: donation events, originally private to
+the owning donor/assigned volunteer (see "Terminology" above — deliberately
+distinct from the public `Events`/`EventItem` calendar), are now also
+surfaced read-only on the public homepage. See
+[[../014-homepage-scheduled-events/requirements]].

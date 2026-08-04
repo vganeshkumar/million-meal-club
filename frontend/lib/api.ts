@@ -3,15 +3,17 @@ import type {
   ContentResponse,
   DonationEvent,
   Donor,
+  DonorAdminView,
   SignupAdminView,
   SignupPayload,
   SubmissionAdminView,
   SubmissionPayload,
   Volunteer,
+  VolunteerAdminView,
   VolunteerSummary,
 } from "./types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "/api";
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "/api";
 
 class ApiError extends Error {
   status: number;
@@ -55,14 +57,10 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ access_token: accessToken }),
     }),
-  signInDummy: (
-    username: string,
-    password: string,
-    role: "admin" | "donor" | "volunteer",
-  ) =>
+  signInDummy: (username: string, password: string) =>
     request<AuthUser>("/auth/dummy", {
       method: "POST",
-      body: JSON.stringify({ username, password, role }),
+      body: JSON.stringify({ username, password }),
     }),
   logout: () => request<void>("/auth/logout", { method: "POST" }),
 
@@ -98,7 +96,24 @@ export const api = {
     }),
 
   getMyDonor: () => request<Donor>("/donors/me"),
+  updateMyDonor: (payload: { location: string; country: string; story: string }) =>
+    request<Donor>("/donors/me", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
   getMyVolunteer: () => request<Volunteer>("/volunteers/me"),
+  updateMyVolunteer: (payload: {
+    location: string;
+    country: string;
+    packets_per_trip: number;
+    availability: string;
+    volunteering_history?: string;
+    references?: string;
+  }) =>
+    request<Volunteer>("/volunteers/me", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
   rsvpToEvent: (eventId: string) =>
     request<void>(`/events/${eventId}/rsvp`, { method: "POST" }),
   cancelRsvp: (eventId: string) =>
@@ -109,10 +124,33 @@ export const api = {
   createDonationEvent: (payload: {
     location: string;
     date: string;
+    start_time: string;
+    end_time: string;
     volunteer_id?: string;
+    packet_count?: number;
+    delivery_role?: "self" | "volunteer_needed";
+    partner_charity?: string;
+    notes?: string;
   }) =>
     request<DonationEvent>("/donation-events", {
       method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updateDonationEvent: (
+    eventId: string,
+    payload: {
+      location: string;
+      date: string;
+      start_time: string;
+      end_time: string;
+      packet_count?: number;
+      delivery_role?: "self" | "volunteer_needed";
+      partner_charity?: string;
+      notes?: string;
+    },
+  ) =>
+    request<DonationEvent>(`/donation-events/${eventId}`, {
+      method: "PATCH",
       body: JSON.stringify(payload),
     }),
   assignDonationEventVolunteer: (eventId: string, volunteerId: string | null) =>
@@ -120,8 +158,27 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ volunteer_id: volunteerId }),
     }),
+  cancelDonationEvent: (eventId: string) =>
+    request<DonationEvent>(`/donation-events/${eventId}/cancel`, {
+      method: "POST",
+    }),
   listVolunteerAssignedEvents: () =>
     request<DonationEvent[]>("/donation-events/volunteer-assigned"),
+
+  listAllDonors: () => request<DonorAdminView[]>("/admin/donors"),
+  disableDonor: (id: string) =>
+    request<void>(`/admin/donors/${id}/disable`, { method: "POST" }),
+  reactivateDonor: (id: string) =>
+    request<void>(`/admin/donors/${id}/reactivate`, { method: "POST" }),
+
+  listAllVolunteers: () => request<VolunteerAdminView[]>("/admin/volunteers"),
+  disableVolunteer: (id: string) =>
+    request<void>(`/admin/volunteers/${id}/disable`, { method: "POST" }),
+  reactivateVolunteer: (id: string) =>
+    request<void>(`/admin/volunteers/${id}/reactivate`, { method: "POST" }),
+
+  listUpcomingDonationEvents: () =>
+    request<DonationEvent[]>("/admin/donation-events?status=scheduled"),
 };
 
 export async function uploadToPresignedUrl(

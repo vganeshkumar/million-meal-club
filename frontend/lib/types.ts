@@ -5,6 +5,10 @@ export type Donation = {
   meals: number;
   caption: string;
   photoUrl?: string;
+  // Only ever present on GET /api/donors/me — the public Donor model
+  // (also used by GET /api/donors/{id}) never carries a receipt. See
+  // specs/features/021-completed-event-details/design.md.
+  receiptUrl?: string;
 };
 
 export type Donor = {
@@ -16,6 +20,10 @@ export type Donor = {
   totalMeals: number;
   donationCount: number;
   donations?: Donation[];
+  // Only ever present on GET /api/donors/me — the public Donor model
+  // (also used by GET /api/donors/{id}) never carries this. See
+  // specs/features/015-local-dev-generated-credentials/design.md.
+  localUsername?: string;
 };
 
 export type EventItem = {
@@ -55,6 +63,7 @@ export type ContentResponse = {
   events: EventItem[];
   partnerCharities: PartnerCharity[];
   gallery: GalleryPhoto[];
+  donationEvents: DonationEvent[];
 };
 
 export type AuthUser = {
@@ -73,7 +82,12 @@ export type Volunteer = {
   country: string;
   packetsPerTrip?: number;
   availability?: string;
+  volunteeringHistory?: string;
+  references?: string;
   events: EventItem[];
+  // Only ever present on GET /api/volunteers/me. See
+  // specs/features/015-local-dev-generated-credentials/design.md.
+  localUsername?: string;
 };
 
 export type VolunteerSummary = {
@@ -85,7 +99,11 @@ export type VolunteerSummary = {
   availability?: string;
 };
 
-export type DonationEventStatus = "scheduled" | "submitted";
+export type DonationEventStatus =
+  | "scheduled"
+  | "submitted"
+  | "completed"
+  | "cancelled";
 
 export type DonationEvent = {
   id: string;
@@ -97,6 +115,24 @@ export type DonationEvent = {
   volunteerName?: string;
   status: DonationEventStatus;
   submissionId?: string;
+  // Optional signup-style detail entered at scheduling time — see
+  // specs/features/019-dashboard-profile-tab-and-proof-relocation.
+  packetCount?: number;
+  deliveryRole?: "self" | "volunteer_needed";
+  partnerCharity?: string;
+  notes?: string;
+  // Set once status flips to "completed" — the approved delivery photo/
+  // caption, public-safe (no receipt). See
+  // specs/features/021-completed-event-details/design.md.
+  photoUrl?: string;
+  caption?: string;
+  // `location` is an exact address going forward — these are geocoded
+  // from it server-side, best-effort (may be absent). See
+  // specs/features/023-event-location-time-and-sharing/design.md.
+  latitude?: number;
+  longitude?: number;
+  startTime?: string; // "HH:MM", 24h
+  endTime?: string; // "HH:MM", 24h
 };
 
 export type JoinMode = "donor" | "volunteer";
@@ -118,6 +154,8 @@ export type SignupPayload = {
   // mode === "volunteer"
   packets_per_trip?: number;
   availability?: string;
+  volunteering_history?: string;
+  references?: string;
 };
 
 export type SubmissionPayload = {
@@ -152,6 +190,10 @@ export type SignupAdminView = {
   delivery_role?: "self" | "volunteer_needed";
   partner_charity?: string;
   donor_story?: string;
+  packets_per_trip?: number;
+  availability?: string;
+  volunteering_history?: string;
+  references?: string;
   status: "requested_signoff" | "approved" | "rejected";
   created_at: string;
 };
@@ -169,4 +211,34 @@ export type SubmissionAdminView = {
   caption?: string;
   status: "pending" | "approved" | "rejected";
   created_at: string;
+};
+
+export type MembershipStatus = "active" | "disabled";
+
+// Also snake_case on the wire — DonorAdminView/VolunteerAdminView are
+// plain pydantic BaseModels, same convention as SignupAdminView/
+// SubmissionAdminView above. See
+// specs/features/016-admin-membership-status/design.md — deliberately
+// distinct from the public Donor/Volunteer types, which never carry
+// `email` or `status`.
+export type DonorAdminView = {
+  donor_id: string;
+  name: string;
+  location: string;
+  country: string;
+  email: string;
+  total_meals: number;
+  donation_count: number;
+  status: MembershipStatus;
+};
+
+export type VolunteerAdminView = {
+  volunteer_id: string;
+  name: string;
+  location: string;
+  country: string;
+  email: string;
+  packets_per_trip?: number;
+  availability?: string;
+  status: MembershipStatus;
 };

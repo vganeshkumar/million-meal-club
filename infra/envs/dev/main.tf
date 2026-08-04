@@ -64,7 +64,12 @@ module "api" {
   session_secret      = var.session_secret
   ses_from_email      = var.ses_from_email
   ses_identity_arn    = var.ses_from_email != "" ? aws_ses_email_identity.from[0].arn : ""
-  tags                = local.common_tags
+  # Known upfront from var.domain_name — deliberately not sourced from
+  # module.static_site (defined below), which would create a dependency
+  # cycle since static_site itself depends on module.api.api_domain_name.
+  site_base_url    = local.has_custom_domain ? "https://${var.domain_name}" : ""
+  geoapify_api_key = var.geoapify_api_key
+  tags             = local.common_tags
 }
 
 module "static_site" {

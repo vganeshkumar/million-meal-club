@@ -58,12 +58,18 @@ This is the key behavior change from the original open "Fund Meals" model:
 
 ### Volunteer mode
 Packets Per Trip, Availability (free text), plus the email requirement
-above. Submit button reads "Register As A Volunteer." **Update,
-2026-08-03**: submitting now immediately creates an unclaimed `Volunteers`
-record (no approval gate, unlike donors) — see
-[[../008-persona-dashboards-and-roles/design]] — so the volunteer can later
-sign in and be recognized (RSVP to events, submit proof on behalf of a
-donor).
+above. **Update, 2026-08-03**: originally submitting immediately created an
+unclaimed `Volunteers` record (no approval gate, unlike donors) — see
+[[../008-persona-dashboards-and-roles/design]]. Later the same day this was
+replaced with a real approval loop, matching donors: the form gained two
+more optional fields (prior volunteering experience, donor references),
+the submit button now reads "Submit Volunteer Application," and the
+application lands in `Signups` with `status: "requested_signoff"` for an
+admin to review before the volunteer is linkable — see
+[[../011-volunteer-application-approval/requirements]] for the full loop
+(treat that spec as the primary source for anything approval-related, this
+file just owns the form itself, same relationship this section already has
+with [[../007-donor-application-approval/requirements]] for donor mode).
 
 ## Out of scope
 - Any matching/coordination logic between donors and volunteers, or any

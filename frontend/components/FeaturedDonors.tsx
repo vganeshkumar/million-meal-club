@@ -26,7 +26,7 @@ export function FeaturedDonors({ donors, onSelectDonor }: FeaturedDonorsProps) {
           </p>
         </div>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-6">
-          {donors.map((donor, i) => {
+          {donors.slice(0, 10).map((donor, i) => {
             const isTop = i === 0;
             const accent = isTop ? "var(--accent-amber)" : "var(--accent-green)";
             return (
@@ -62,9 +62,6 @@ export function FeaturedDonors({ donors, onSelectDonor }: FeaturedDonorsProps) {
                     meals delivered
                   </span>
                 </div>
-                <p className="m-0 font-mono text-[13px] leading-[1.6] text-muted-3">
-                  {donor.story || "+ add why this donor is doing this, in their own words"}
-                </p>
               </button>
             );
           })}

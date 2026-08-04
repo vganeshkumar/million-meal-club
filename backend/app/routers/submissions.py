@@ -40,7 +40,7 @@ def create_submission(
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail=EVENT_NOT_FOUND_DETAIL
             )
-        if event.status == "submitted":
+        if event.status in ("submitted", "completed"):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=EVENT_ALREADY_SUBMITTED_DETAIL,

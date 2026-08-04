@@ -58,3 +58,10 @@ variable "ses_from_email" {
   default     = ""
   description = "Verified SES sending address for donor-onboarding emails. Empty skips SES entirely — see specs/features/007-donor-application-approval/design.md. Remember: SES starts in sandbox mode, so recipient addresses need verifying too until AWS grants production access."
 }
+
+variable "geoapify_api_key" {
+  type        = string
+  default     = ""
+  sensitive   = true
+  description = "Geoapify Static Maps API key (free tier). Empty omits the donation-event share page's og:image — see specs/features/023-event-location-time-and-sharing/design.md."
+}

@@ -21,6 +21,14 @@ class Donation(CamelModel):
     photo_url: str | None = None
 
 
+class DonationMe(Donation):
+    """A donor's own view of one of their donations — adds the receipt,
+    which the public Donor/Donation model (used by GET /donors/{id}) never
+    carries. See specs/features/021-completed-event-details/design.md."""
+
+    receipt_url: str | None = None
+
+
 class Donor(CamelModel):
     id: str
     name: str
@@ -30,6 +38,18 @@ class Donor(CamelModel):
     total_meals: int
     donation_count: int
     donations: list[Donation] | None = None
+
+
+class DonorMe(Donor):
+    """GET /api/donors/me only — the public Donor model (also used by
+    GET /api/donors/{id}) deliberately never carries this, so there is no
+    code path where the public route could ever return it. See
+    specs/features/015-local-dev-generated-credentials/design.md."""
+
+    local_username: str | None = None
+    # Overrides Donor.donations' element type to include receipt_url — see
+    # DonationMe. specs/features/021-completed-event-details/design.md.
+    donations: list[DonationMe] | None = None
 
 
 class EventItem(CamelModel):
@@ -65,7 +85,17 @@ class Volunteer(CamelModel):
     country: str = ""
     packets_per_trip: int | None = None
     availability: str | None = None
+    volunteering_history: str | None = None
+    references: str | None = None
     events: list[EventItem]
+
+
+class VolunteerMe(Volunteer):
+    """GET /api/volunteers/me only — same idea as DonorMe, distinct from
+    the public Volunteer/VolunteerSummary models. See
+    specs/features/015-local-dev-generated-credentials/design.md."""
+
+    local_username: str | None = None
 
 
 class VolunteerSummary(CamelModel):
@@ -82,7 +112,41 @@ class VolunteerSummary(CamelModel):
     availability: str | None = None
 
 
-DonationEventStatus = Literal["scheduled", "submitted"]
+MembershipStatus = Literal["active", "disabled"]
+
+
+class DonorAdminView(BaseModel):
+    """Admin-only directory row — see
+    specs/features/016-admin-membership-status/design.md. Plain BaseModel
+    (snake_case wire format), same convention as SignupAdminView /
+    SubmissionAdminView; deliberately distinct from the public Donor
+    CamelModel, which must never carry `email` or `status`."""
+
+    donor_id: str
+    name: str
+    location: str
+    country: str = ""
+    email: str
+    total_meals: int
+    donation_count: int
+    status: MembershipStatus
+
+
+class VolunteerAdminView(BaseModel):
+    """Admin-only directory row — same idea as DonorAdminView, against
+    Volunteers."""
+
+    volunteer_id: str
+    name: str
+    location: str
+    country: str = ""
+    email: str
+    packets_per_trip: int | None = None
+    availability: str | None = None
+    status: MembershipStatus
+
+
+DonationEventStatus = Literal["scheduled", "submitted", "completed", "cancelled"]
 
 
 class DonationEvent(CamelModel):
@@ -95,12 +159,50 @@ class DonationEvent(CamelModel):
     volunteer_name: str | None = None
     status: DonationEventStatus = "scheduled"
     submission_id: str | None = None
+    # Optional signup-style detail, entered at scheduling time — see
+    # specs/features/019-dashboard-profile-tab-and-proof-relocation/design.md.
+    # Deliberately excludes location/country/story, which live on the
+    # donor's Profile tab instead (specs/features/018-profile-edit).
+    packet_count: int | None = None
+    delivery_role: Literal["self", "volunteer_needed"] | None = None
+    partner_charity: str | None = None
+    notes: str | None = None
+    # Set once the linked submission is approved (status flips to
+    # "completed") — the approved delivery photo/caption, public-safe (no
+    # receipt — see DonationMe for the donor-only equivalent). See
+    # specs/features/021-completed-event-details/design.md.
+    photo_url: str | None = None
+    caption: str | None = None
+    # `location` is now expected to be an exact address; these are
+    # geocoded from it server-side (best-effort, never required — see
+    # specs/features/023-event-location-time-and-sharing/design.md).
+    latitude: float | None = None
+    longitude: float | None = None
+    start_time: str | None = None  # "HH:MM", 24h
+    end_time: str | None = None  # "HH:MM", 24h
 
 
 class CreateDonationEventRequest(BaseModel):
     location: str
     date: str
+    start_time: str
+    end_time: str
     volunteer_id: str | None = None
+    packet_count: int | None = None
+    delivery_role: Literal["self", "volunteer_needed"] | None = None
+    partner_charity: str | None = None
+    notes: str | None = None
+
+
+class UpdateDonationEventRequest(BaseModel):
+    location: str
+    date: str
+    start_time: str
+    end_time: str
+    packet_count: int | None = None
+    delivery_role: Literal["self", "volunteer_needed"] | None = None
+    partner_charity: str | None = None
+    notes: str | None = None
 
 
 class AssignVolunteerRequest(BaseModel):
@@ -122,6 +224,10 @@ class ContentResponse(CamelModel):
     events: list[EventItem]
     partner_charities: list[PartnerCharity]
     gallery: list[GalleryPhoto]
+    # Public read-only feed for the homepage Scheduled/Completed toggle —
+    # see specs/features/014-homepage-scheduled-events/design.md. Every
+    # DonationEvent, any donor, any status (not scoped to "mine").
+    donation_events: list[DonationEvent]
 
 
 class AuthUser(CamelModel):
@@ -143,12 +249,14 @@ class FacebookAuthRequest(BaseModel):
 
 class DummyLoginRequest(BaseModel):
     """Local-dev-only login — see specs/00-constitution.md §4 and
-    specs/features/008-persona-dashboards-and-roles/design.md. Only ever
-    accepted when ENABLE_DUMMY_LOGIN=true, which Terraform never sets."""
+    specs/features/015-local-dev-generated-credentials/design.md. Only
+    ever accepted when ENABLE_DUMMY_LOGIN=true, which Terraform never
+    sets. `username == "dummy_user"` is reserved for the fixed admin
+    shortcut; any other username is looked up as a generated Donor/
+    Volunteer local_username (see `Store.resolve_local_login`)."""
 
     username: str
     password: str
-    role: Literal["admin", "donor", "volunteer"]
 
 
 class SignupRequest(BaseModel):
@@ -156,7 +264,9 @@ class SignupRequest(BaseModel):
     application (not an instant sign-up) — see
     specs/features/002-join-in-signup/design.md. `commit_50k_4yr` and
     `agree_publish_story` must both be true (not just present) in donor
-    mode, same as the two required checkboxes in the design."""
+    mode, same as the two required checkboxes in the design. Every field
+    not explicitly optional in the Join In form is required — see
+    specs/features/012-required-field-validation/design.md."""
 
     mode: Literal["donor", "volunteer"]
     name: str | None = None
@@ -174,10 +284,20 @@ class SignupRequest(BaseModel):
     # mode == "volunteer"
     packets_per_trip: int | None = None
     availability: str | None = None
+    volunteering_history: str | None = None
+    references: str | None = None
 
     @model_validator(mode="after")
-    def _validate_donor_fields(self) -> Self:
+    def _validate_required_fields(self) -> Self:
         if self.mode == "donor":
+            if self.packet_count is None:
+                raise ValueError("packet_count is required when mode is 'donor'")
+            if not self.delivery_role and not self.partner_charity:
+                raise ValueError(
+                    "either delivery_role or partner_charity is required when "
+                    "mode is 'donor' — self-deliver, need a volunteer, or give "
+                    "through a partner charity are the three ways to deliver"
+                )
             if not self.donor_story or not self.donor_story.strip():
                 raise ValueError("donor_story is required when mode is 'donor'")
             if not self.commit_50k_4yr:
@@ -187,6 +307,15 @@ class SignupRequest(BaseModel):
             if not self.agree_publish_story:
                 raise ValueError(
                     "agree_publish_story must be true when mode is 'donor'"
+                )
+        else:
+            if self.packets_per_trip is None:
+                raise ValueError(
+                    "packets_per_trip is required when mode is 'volunteer'"
+                )
+            if not self.availability or not self.availability.strip():
+                raise ValueError(
+                    "availability is required when mode is 'volunteer'"
                 )
         return self
 
@@ -210,6 +339,10 @@ class SignupAdminView(BaseModel):
     delivery_role: Literal["self", "volunteer_needed"] | None = None
     partner_charity: str | None = None
     donor_story: str | None = None
+    packets_per_trip: int | None = None
+    availability: str | None = None
+    volunteering_history: str | None = None
+    references: str | None = None
     status: SignupStatus
     created_at: str
 
@@ -260,6 +393,32 @@ class SubmissionAdminView(BaseModel):
     donation_event_id: str | None = None
     status: Literal["pending", "approved", "rejected"]
     created_at: str
+
+
+class UpdateDonorProfileRequest(BaseModel):
+    """PATCH /api/donors/me — see
+    specs/features/018-profile-edit/design.md. Every field is required
+    (not a partial patch) since the frontend always submits the full
+    prefilled form."""
+
+    location: str
+    country: str
+    story: str
+
+
+class UpdateVolunteerProfileRequest(BaseModel):
+    """PATCH /api/volunteers/me — see
+    specs/features/024-volunteer-profile-full-fields/design.md.
+    `packets_per_trip`/`availability` are required (mirrors their being
+    required at signup); `volunteering_history`/`references` stay optional,
+    same as at signup."""
+
+    location: str
+    country: str
+    packets_per_trip: int
+    availability: str
+    volunteering_history: str | None = None
+    references: str | None = None
 
 
 class ConfigUpdateRequest(BaseModel):
