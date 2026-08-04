@@ -94,6 +94,14 @@ immediately at signup (no approval gate; matches today's "volunteers just
 register" behavior), unclaimed until the same email signs in later and
 claims it (identical mechanism to donor claiming).
 
+**Update, 2026-08-03 (later the same day)**: the "no approval gate" design
+above was reconsidered — volunteers now go through the same
+`requested_signoff` → admin-review → approve/reject loop as donors, and the
+`Volunteers` record is created on approval, not at signup. See
+[[../011-volunteer-application-approval/requirements]]; the claiming
+mechanism itself (`resolve_volunteer_id`) is unchanged, it just now has
+nothing to claim until an admin approves.
+
 ### Local testing: single dummy login, role picker
 - Credentials: **`dummy_user`** / **`dummy_password`** (the user specified
   these exact values, replacing the previous `dummy`/`dummy` — see
@@ -115,6 +123,12 @@ claims it (identical mechanism to donor claiming).
 - Still gated behind `ENABLE_DUMMY_LOGIN=true` (backend) /
   `NEXT_PUBLIC_ENABLE_DUMMY_LOGIN=true` (frontend), never set in a
   deployed env — see [[../../00-constitution]] §4, unchanged.
+
+**Superseded, 2026-08-03 (later)**: the Donor/Volunteer role shortcuts
+above (synthetic auto-provisioned sample accounts) were replaced with
+real per-applicant generated credentials — see
+[[../015-local-dev-generated-credentials/requirements]]. The Admin
+shortcut described here is unaffected.
 
 ## Open question / assumption flagged for confirmation
 **"Register for new donations"** is ambiguous between two designs, and I'm

@@ -1,7 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.deps import Session, get_current_user
-from app.models.domain import Volunteer, VolunteerSummary
+from app.models.domain import (
+    UpdateVolunteerProfileRequest,
+    Volunteer,
+    VolunteerMe,
+    VolunteerSummary,
+)
 from app.services.store import get_store
 
 router = APIRouter(tags=["volunteers"])
@@ -22,8 +27,12 @@ def list_volunteers(session: Session = Depends(get_current_user)) -> list[Volunt
     return get_store().list_volunteers()
 
 
-@router.get("/volunteers/me", response_model=Volunteer)
-def get_my_volunteer(session: Session = Depends(get_current_user)) -> Volunteer:
+@router.get("/volunteers/me", response_model=VolunteerMe)
+def get_my_volunteer(session: Session = Depends(get_current_user)) -> VolunteerMe:
+    """Returns VolunteerMe (not the public Volunteer model) so the
+    generated local-dev username can be attached without ever exposing
+    it on the public directory — see
+    specs/features/015-local-dev-generated-credentials/design.md."""
     user_id, user = session
     volunteer_id = get_store().resolve_volunteer_id(user_id, user.email)
     if volunteer_id is None:
@@ -34,7 +43,34 @@ def get_my_volunteer(session: Session = Depends(get_current_user)) -> Volunteer:
     volunteer = get_store().get_volunteer(volunteer_id)
     if volunteer is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    return volunteer
+    local_username = get_store().get_volunteer_local_username(volunteer_id)
+    return VolunteerMe(**volunteer.model_dump(), local_username=local_username)
+
+
+@router.patch("/volunteers/me", response_model=Volunteer)
+def update_my_volunteer(
+    payload: UpdateVolunteerProfileRequest,
+    session: Session = Depends(get_current_user),
+) -> Volunteer:
+    """See specs/features/024-volunteer-profile-full-fields/design.md — lets
+    a signed-in volunteer edit all of the fields they originally entered at
+    application time. Same resolve-or-404 shape as GET /volunteers/me."""
+    user_id, user = session
+    volunteer_id = get_store().resolve_volunteer_id(user_id, user.email)
+    if volunteer_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Not registered as a volunteer yet",
+        )
+    return get_store().update_volunteer_profile(
+        volunteer_id,
+        payload.location,
+        payload.country,
+        payload.packets_per_trip,
+        payload.availability,
+        payload.volunteering_history,
+        payload.references,
+    )
 
 
 @router.post("/events/{event_id}/rsvp", status_code=status.HTTP_204_NO_CONTENT)

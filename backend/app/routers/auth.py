@@ -50,6 +50,20 @@ def _auth_user_with_roles(
     )
 
 
+def _reject_if_membership_disabled(user_id: str, email: str) -> None:
+    """Blocks sign-in for a donor/volunteer an admin has disabled — see
+    specs/features/016-admin-membership-status/design.md. Called after
+    get_or_create_user but before a session cookie is issued, so a
+    disabled member's login attempt never gets a session at all. Scope is
+    new sign-ins only — an already-open browser session isn't proactively
+    revoked."""
+    if get_store().is_membership_disabled(user_id, email):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This account has been disabled. Contact the founder if you believe this is a mistake.",
+        )
+
+
 @router.post("/google", response_model=AuthUser)
 def sign_in_google(body: GoogleAuthRequest, response: Response) -> AuthUser:
     try:
@@ -59,6 +73,7 @@ def sign_in_google(body: GoogleAuthRequest, response: Response) -> AuthUser:
             status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e)
         ) from e
     user_id, name = get_store().get_or_create_user("google", subject, email, name)
+    _reject_if_membership_disabled(user_id, email)
     _set_session_cookie(response, issue_session_token(user_id, name, email, "google"))
     return _auth_user_with_roles(user_id, name, email, "google")
 
@@ -72,27 +87,29 @@ def sign_in_facebook(body: FacebookAuthRequest, response: Response) -> AuthUser:
             status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e)
         ) from e
     user_id, name = get_store().get_or_create_user("facebook", subject, email, name)
+    _reject_if_membership_disabled(user_id, email)
     _set_session_cookie(response, issue_session_token(user_id, name, email, "facebook"))
     return _auth_user_with_roles(user_id, name, email, "facebook")
 
 
 @router.post("/dummy", response_model=AuthUser)
 def sign_in_dummy(body: DummyLoginRequest, response: Response) -> AuthUser:
-    """Local-dev-only login with a role picker — see
-    specs/00-constitution.md §4 and
-    specs/features/008-persona-dashboards-and-roles/design.md. 404, not
-    403, when disabled, so the endpoint isn't distinguishable from
-    "doesn't exist" outside local dev."""
+    """Local-dev-only login — see specs/00-constitution.md §4 and
+    specs/features/015-local-dev-generated-credentials/design.md. 404,
+    not 403, when disabled, so the endpoint isn't distinguishable from
+    "doesn't exist" outside local dev. `username == "dummy_user"` is
+    reserved for the admin shortcut; any other username is looked up as
+    a generated Donor/Volunteer local_username (set at approval time)."""
     if os.environ.get("ENABLE_DUMMY_LOGIN") != "true":
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    if body.username != "dummy_user" or body.password != "dummy_password":
+    if body.password != "dummy_password":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
         )
 
     store = get_store()
 
-    if body.role == "admin":
+    if body.username == "dummy_user":
         admin_emails = [
             e.strip()
             for e in os.environ.get("ADMIN_EMAILS", "").split(",")
@@ -104,21 +121,18 @@ def sign_in_dummy(body: DummyLoginRequest, response: Response) -> AuthUser:
                 detail="ADMIN_EMAILS is not configured",
             )
         email, name, subject = admin_emails[0], "Local Admin", "dummy-admin"
-    elif body.role == "donor":
-        email, name, subject = "dummy-donor@local.test", "Dummy Donor", "dummy-donor"
     else:
-        email, name, subject = (
-            "dummy-volunteer@local.test",
-            "Dummy Volunteer",
-            "dummy-volunteer",
-        )
+        match = store.resolve_local_login(body.username)
+        if match is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
+            )
+        email, name = match
+        subject = f"dummy-local-{body.username}"
 
     user_id, name = store.get_or_create_user("dummy", subject, email, name)
-    if body.role == "donor":
-        store.provision_dummy_donor(user_id, email, name)
-    elif body.role == "volunteer":
-        store.provision_dummy_volunteer(user_id, email, name)
-
+    if body.username != "dummy_user":
+        _reject_if_membership_disabled(user_id, email)
     _set_session_cookie(response, issue_session_token(user_id, name, email, "dummy"))
     return _auth_user_with_roles(user_id, name, email, "dummy")
 

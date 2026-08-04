@@ -7,6 +7,11 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 ADMIN_EMAILS="${ADMIN_EMAILS:-vganeshkumar@gmail.com}"
+# Geoapify Static Maps API key (see
+# specs/features/023-event-location-time-and-sharing/design.md) — export
+# GEOAPIFY_API_KEY before running this script to enable the donation-event
+# map image locally. Empty is fine: the app degrades to address-only.
+GEOAPIFY_API_KEY="${GEOAPIFY_API_KEY:-}"
 
 is_listening() {
   lsof -nP -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1
@@ -22,7 +27,7 @@ if is_listening 8001; then
 else
   echo "Backend: opening a Terminal window on :8001..."
   open_terminal_tab "$REPO_ROOT/backend" \
-    "ENV=dev DATA_BACKEND=local API_PUBLIC_BASE_URL=http://localhost:8001/api ADMIN_EMAILS=$ADMIN_EMAILS ENABLE_DUMMY_LOGIN=true uv run uvicorn app.main:app --reload --port 8001"
+    "ENV=dev DATA_BACKEND=local API_PUBLIC_BASE_URL=http://localhost:8001/api ADMIN_EMAILS=$ADMIN_EMAILS ENABLE_DUMMY_LOGIN=true GEOAPIFY_API_KEY=$GEOAPIFY_API_KEY SITE_BASE_URL=http://localhost:3000 uv run uvicorn app.main:app --reload --port 8001"
 fi
 
 if is_listening 3000; then

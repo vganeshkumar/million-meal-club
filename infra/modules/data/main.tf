@@ -134,9 +134,10 @@ resource "aws_dynamodb_table" "signups" {
     type = "S"
   }
 
-  # Donor entries only (requested_signoff/approved/rejected) — volunteer
-  # entries have no status and aren't returned by this index. See
-  # specs/features/007-donor-application-approval/design.md.
+  # Covers both donor and volunteer entries (requested_signoff/approved/
+  # rejected) — both modes go through the same admin review loop. See
+  # specs/features/007-donor-application-approval/design.md and
+  # specs/features/011-volunteer-application-approval/design.md.
   global_secondary_index {
     name            = "status-index"
     hash_key        = "status"
@@ -146,9 +147,9 @@ resource "aws_dynamodb_table" "signups" {
   tags = var.tags
 }
 
-# Mirrors `donors` exactly (email-index/user-index claim mechanism) but
-# with no approval gate — created immediately at signup, not on admin
-# approval. See specs/features/008-persona-dashboards-and-roles/design.md.
+# Mirrors `donors` exactly, including the approval gate: a row here is
+# created by approve_signup, not create_signup, once an admin reviews the
+# application. See specs/features/011-volunteer-application-approval/design.md.
 resource "aws_dynamodb_table" "volunteers" {
   name         = "${local.name_prefix}-volunteers"
   billing_mode = "PAY_PER_REQUEST"

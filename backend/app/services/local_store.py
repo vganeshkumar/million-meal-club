@@ -4,6 +4,7 @@ site is browsable without AWS. Never used when DATA_BACKEND=dynamodb — see
 app/services/dynamo_store.py for the real implementation and
 specs/01-architecture.md for the table shapes this mirrors."""
 
+import re
 import uuid
 from datetime import datetime, timezone
 
@@ -12,18 +13,33 @@ from app.models.domain import (
     Donation,
     DonationEvent,
     Donor,
+    DonorAdminView,
     EventItem,
     GalleryPhoto,
     PartnerCharity,
     SignupRequest,
     SiteConfig,
     Volunteer,
+    VolunteerAdminView,
 )
 from app.services.blob import get_blob_store
 
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _generate_local_username(name: str, taken: set[str]) -> str:
+    """See specs/features/015-local-dev-generated-credentials/design.md —
+    lowercased name, spaces -> underscores, anything else stripped;
+    numeric suffix appended on collision."""
+    base = re.sub(r"[^a-z0-9_]", "", name.strip().lower().replace(" ", "_")) or "user"
+    username = base
+    n = 2
+    while username in taken:
+        username = f"{base}{n}"
+        n += 1
+    return username
 
 
 class LocalStore:
@@ -169,7 +185,9 @@ class LocalStore:
     # -- content -----------------------------------------------------
     def get_content(self) -> ContentResponse:
         blob = get_blob_store()
-        donors = self._ranked_donors(blob)
+        donors = [
+            d for d in self._ranked_donors(blob) if d.get("status", "active") != "disabled"
+        ]
         return ContentResponse(
             config=SiteConfig(**self._config),
             donors=[
@@ -192,7 +210,28 @@ class LocalStore:
                 )
                 for g in self._gallery
             ],
+            donation_events=self._public_donation_events(),
         )
+
+    def _public_donation_events(self) -> list[DonationEvent]:
+        """list_all_donation_events(), minus any event tied to a disabled
+        donor or volunteer (see
+        specs/features/016-admin-membership-status/design.md) or that's
+        been cancelled (see
+        specs/features/017-cancel-donation-events/design.md). Used only by
+        get_content(); the admin Events tab uses the unfiltered
+        list_all_donation_events() directly."""
+        return [
+            e
+            for e in self.list_all_donation_events()
+            if e.status != "cancelled"
+            and self._donors.get(e.donor_id, {}).get("status", "active") != "disabled"
+            and (
+                e.volunteer_id is None
+                or self._volunteers.get(e.volunteer_id, {}).get("status", "active")
+                != "disabled"
+            )
+        ]
 
     def _ranked_donors(self, blob) -> list[dict]:
         out = []
@@ -205,7 +244,7 @@ class LocalStore:
 
     def get_donor(self, donor_id: str) -> Donor | None:
         d = self._donors.get(donor_id)
-        if not d:
+        if not d or d.get("status", "active") == "disabled":
             return None
         blob = get_blob_store()
         donations = self._donations.get(donor_id, [])
@@ -231,6 +270,14 @@ class LocalStore:
             ],
         )
 
+    def list_donor_donation_receipts(self, donor_id: str) -> dict[str, str]:
+        blob = get_blob_store()
+        return {
+            x["id"]: blob.presign_get(x["receipt_key"])
+            for x in self._donations.get(donor_id, [])
+            if x.get("receipt_key")
+        }
+
     def get_volunteer(self, volunteer_id: str) -> Volunteer | None:
         v = self._volunteers.get(volunteer_id)
         if not v:
@@ -244,8 +291,42 @@ class LocalStore:
             country=v.get("country", ""),
             packets_per_trip=v.get("packets_per_trip"),
             availability=v.get("availability"),
+            volunteering_history=v.get("volunteering_history"),
+            references=v.get("references"),
             events=events,
         )
+
+    def update_donor_profile(
+        self, donor_id: str, location: str, country: str, story: str
+    ) -> Donor:
+        d = self._donors[donor_id]
+        d["location"] = location
+        d["country"] = country
+        d["story"] = story
+        donor = self.get_donor(donor_id)
+        assert donor is not None
+        return donor
+
+    def update_volunteer_profile(
+        self,
+        volunteer_id: str,
+        location: str,
+        country: str,
+        packets_per_trip: int,
+        availability: str,
+        volunteering_history: str | None,
+        references: str | None,
+    ) -> Volunteer:
+        v = self._volunteers[volunteer_id]
+        v["location"] = location
+        v["country"] = country
+        v["packets_per_trip"] = packets_per_trip
+        v["availability"] = availability
+        v["volunteering_history"] = volunteering_history
+        v["references"] = references
+        volunteer = self.get_volunteer(volunteer_id)
+        assert volunteer is not None
+        return volunteer
 
     def list_volunteers(self) -> list[Volunteer]:
         return [
@@ -259,7 +340,61 @@ class LocalStore:
                 events=[],
             )
             for v in self._volunteers.values()
+            if v.get("status", "active") != "disabled"
         ]
+
+    def list_all_donors(self) -> list[DonorAdminView]:
+        return [
+            DonorAdminView(
+                donor_id=d["id"],
+                name=d["name"],
+                location=d.get("location", ""),
+                country=d.get("country", ""),
+                email=d.get("email", ""),
+                total_meals=sum(x["meals"] for x in self._donations.get(d["id"], [])),
+                donation_count=len(self._donations.get(d["id"], [])),
+                status=d.get("status", "active"),
+            )
+            for d in self._donors.values()
+        ]
+
+    def list_all_volunteers(self) -> list[VolunteerAdminView]:
+        return [
+            VolunteerAdminView(
+                volunteer_id=v["id"],
+                name=v["name"],
+                location=v.get("location", ""),
+                country=v.get("country", ""),
+                email=v.get("email", ""),
+                packets_per_trip=v.get("packets_per_trip"),
+                availability=v.get("availability"),
+                status=v.get("status", "active"),
+            )
+            for v in self._volunteers.values()
+        ]
+
+    def set_donor_status(self, donor_id: str, status: str) -> None:
+        d = self._donors.get(donor_id)
+        if d is not None:
+            d["status"] = status
+
+    def set_volunteer_status(self, volunteer_id: str, status: str) -> None:
+        v = self._volunteers.get(volunteer_id)
+        if v is not None:
+            v["status"] = status
+
+    def is_membership_disabled(self, user_id: str, email: str) -> bool:
+        for d in self._donors.values():
+            if (d.get("user_id") == user_id or (email and d.get("email") == email)) and d.get(
+                "status", "active"
+            ) == "disabled":
+                return True
+        for v in self._volunteers.values():
+            if (v.get("user_id") == user_id or (email and v.get("email") == email)) and v.get(
+                "status", "active"
+            ) == "disabled":
+                return True
+        return False
 
     # -- users ---------------------------------------------------------
     def get_or_create_user(
@@ -294,29 +429,15 @@ class LocalStore:
             **payload.model_dump(),
             "name": name,
             "email": email,
+            "status": "requested_signoff",
         }
-        if payload.mode == "donor":
-            item["status"] = "requested_signoff"
-        else:
-            # Volunteers have no approval gate — linkable immediately. See
-            # specs/features/008-persona-dashboards-and-roles/design.md.
-            volunteer_id = uuid.uuid4().hex
-            self._volunteers[volunteer_id] = {
-                "id": volunteer_id,
-                "name": name,
-                "location": payload.location,
-                "country": payload.country,
-                "email": email,
-                "packets_per_trip": payload.packets_per_trip,
-                "availability": payload.availability,
-            }
         self._signups.append(item)
         return signup_id
 
     def list_signups(self, status: str) -> list[dict]:
         return [s for s in self._signups if s.get("status") == status]
 
-    def approve_signup(self, signup_id: str) -> tuple[str, str]:
+    def approve_signup(self, signup_id: str) -> tuple[str, str, str]:
         signup = next(
             (s for s in self._signups if s["signup_id"] == signup_id), None
         )
@@ -326,17 +447,44 @@ class LocalStore:
 
         name = signup.get("name") or "Anonymous"
         email = signup["email"]
-        donor_id = uuid.uuid4().hex
-        self._donors[donor_id] = {
-            "id": donor_id,
-            "name": name,
-            "location": signup.get("location", ""),
-            "country": signup.get("country", ""),
-            "story": signup.get("donor_story", ""),
-            "email": email,
+        mode = signup["mode"]
+        taken = {
+            d["local_username"] for d in self._donors.values() if d.get("local_username")
+        } | {
+            v["local_username"]
+            for v in self._volunteers.values()
+            if v.get("local_username")
         }
-        self._donations[donor_id] = []
-        return name, email
+        local_username = _generate_local_username(name, taken)
+        if mode == "donor":
+            donor_id = uuid.uuid4().hex
+            self._donors[donor_id] = {
+                "id": donor_id,
+                "name": name,
+                "location": signup.get("location", ""),
+                "country": signup.get("country", ""),
+                "story": signup.get("donor_story", ""),
+                "email": email,
+                "local_username": local_username,
+                "status": "active",
+            }
+            self._donations[donor_id] = []
+        else:
+            volunteer_id = uuid.uuid4().hex
+            self._volunteers[volunteer_id] = {
+                "id": volunteer_id,
+                "name": name,
+                "location": signup.get("location", ""),
+                "country": signup.get("country", ""),
+                "email": email,
+                "packets_per_trip": signup.get("packets_per_trip"),
+                "availability": signup.get("availability"),
+                "volunteering_history": signup.get("volunteering_history"),
+                "references": signup.get("references"),
+                "local_username": local_username,
+                "status": "active",
+            }
+        return name, email, mode
 
     def reject_signup(self, signup_id: str) -> None:
         signup = next(
@@ -364,6 +512,16 @@ class LocalStore:
             volunteer_name=e.get("volunteer_name"),
             status=e["status"],
             submission_id=e.get("submission_id"),
+            packet_count=e.get("packet_count"),
+            delivery_role=e.get("delivery_role"),
+            partner_charity=e.get("partner_charity"),
+            notes=e.get("notes"),
+            photo_url=e.get("photo_url"),
+            caption=e.get("caption"),
+            latitude=e.get("latitude"),
+            longitude=e.get("longitude"),
+            start_time=e.get("start_time"),
+            end_time=e.get("end_time"),
         )
 
     def create_donation_event(
@@ -372,8 +530,16 @@ class LocalStore:
         donor_name: str,
         location: str,
         date: str,
+        start_time: str,
+        end_time: str,
         volunteer_id: str | None,
         volunteer_name: str | None,
+        latitude: float | None = None,
+        longitude: float | None = None,
+        packet_count: int | None = None,
+        delivery_role: str | None = None,
+        partner_charity: str | None = None,
+        notes: str | None = None,
     ) -> DonationEvent:
         event_id = uuid.uuid4().hex
         row = {
@@ -382,10 +548,18 @@ class LocalStore:
             "donor_name": donor_name,
             "location": location,
             "date": date,
+            "start_time": start_time,
+            "end_time": end_time,
             "volunteer_id": volunteer_id,
             "volunteer_name": volunteer_name,
             "status": "scheduled",
             "submission_id": None,
+            "latitude": latitude,
+            "longitude": longitude,
+            "packet_count": packet_count,
+            "delivery_role": delivery_role,
+            "partner_charity": partner_charity,
+            "notes": notes,
             "created_at": _now(),
         }
         self._donation_events[event_id] = row
@@ -409,6 +583,10 @@ class LocalStore:
         rows.sort(key=lambda e: e["date"])
         return [self._donation_event_from_row(e) for e in rows]
 
+    def list_all_donation_events(self) -> list[DonationEvent]:
+        rows = sorted(self._donation_events.values(), key=lambda e: e["date"])
+        return [self._donation_event_from_row(e) for e in rows]
+
     def get_donation_event(self, event_id: str) -> DonationEvent | None:
         row = self._donation_events.get(event_id)
         return self._donation_event_from_row(row) if row else None
@@ -422,10 +600,50 @@ class LocalStore:
         row = self._donation_events.get(event_id)
         if row is None:
             raise ValueError("Donation event not found")
-        if row["status"] == "submitted":
+        if row["status"] in ("submitted", "completed"):
             raise ValueError("Donation event is already submitted")
         row["volunteer_id"] = volunteer_id
         row["volunteer_name"] = volunteer_name
+        return self._donation_event_from_row(row)
+
+    def cancel_donation_event(self, event_id: str) -> DonationEvent:
+        row = self._donation_events.get(event_id)
+        if row is None:
+            raise ValueError("Donation event not found")
+        if row["status"] in ("submitted", "completed", "cancelled"):
+            raise ValueError("Donation event can't be cancelled")
+        row["status"] = "cancelled"
+        return self._donation_event_from_row(row)
+
+    def update_donation_event(
+        self,
+        event_id: str,
+        location: str,
+        date: str,
+        start_time: str,
+        end_time: str,
+        packet_count: int | None,
+        delivery_role: str | None,
+        partner_charity: str | None,
+        notes: str | None,
+        latitude: float | None = None,
+        longitude: float | None = None,
+    ) -> DonationEvent:
+        row = self._donation_events.get(event_id)
+        if row is None:
+            raise ValueError("Donation event not found")
+        if row["status"] != "scheduled":
+            raise ValueError("Donation event can't be edited")
+        row["location"] = location
+        row["date"] = date
+        row["start_time"] = start_time
+        row["end_time"] = end_time
+        row["latitude"] = latitude
+        row["longitude"] = longitude
+        row["packet_count"] = packet_count
+        row["delivery_role"] = delivery_role
+        row["partner_charity"] = partner_charity
+        row["notes"] = notes
         return self._donation_event_from_row(row)
 
     # -- submissions -----------------------------------------------------
@@ -494,48 +712,22 @@ class LocalStore:
                     return v["id"]
         return None
 
-    def provision_dummy_donor(self, user_id: str, email: str, name: str) -> str:
-        existing = self.resolve_donor_id(user_id, email)
-        if existing:
-            return existing
-        donor_id = uuid.uuid4().hex
-        self._donors[donor_id] = {
-            "id": donor_id,
-            "name": name,
-            "location": "Austin, TX",
-            "country": "United States",
-            "story": "Testing the donor dashboard locally.",
-            "email": email,
-            "user_id": user_id,
-        }
-        self._donations[donor_id] = [
-            {
-                "id": uuid.uuid4().hex,
-                "date": _now()[:10],
-                "location": "Austin, TX",
-                "meals": 50,
-                "caption": "Sample delivery for local testing.",
-                "photo_key": None,
-            }
-        ]
-        return donor_id
+    def get_donor_local_username(self, donor_id: str) -> str | None:
+        d = self._donors.get(donor_id)
+        return d.get("local_username") if d else None
 
-    def provision_dummy_volunteer(self, user_id: str, email: str, name: str) -> str:
-        existing = self.resolve_volunteer_id(user_id, email)
-        if existing:
-            return existing
-        volunteer_id = uuid.uuid4().hex
-        self._volunteers[volunteer_id] = {
-            "id": volunteer_id,
-            "name": name,
-            "location": "Austin, TX",
-            "country": "United States",
-            "email": email,
-            "user_id": user_id,
-            "packets_per_trip": 20,
-            "availability": "Weekends",
-        }
-        return volunteer_id
+    def get_volunteer_local_username(self, volunteer_id: str) -> str | None:
+        v = self._volunteers.get(volunteer_id)
+        return v.get("local_username") if v else None
+
+    def resolve_local_login(self, username: str) -> tuple[str, str] | None:
+        for d in self._donors.values():
+            if d.get("local_username") == username:
+                return d["email"], d["name"]
+        for v in self._volunteers.values():
+            if v.get("local_username") == username:
+                return v["email"], v["name"]
+        return None
 
     def list_submissions(self, status: str) -> list[dict]:
         blob = get_blob_store()
@@ -570,12 +762,20 @@ class LocalStore:
                 "meals": s["meals"],
                 "caption": s.get("caption") or "",
                 "photo_key": approved_key,
+                "receipt_key": s.get("receipt_key"),
                 "delivery_role": s.get("delivery_role"),
                 "partner_charity": s.get("partner_charity"),
             }
         )
         self._config["total_meals"] += s["meals"]
         s["status"] = "approved"
+        donation_event_id = s.get("donation_event_id")
+        if donation_event_id:
+            event = self._donation_events.get(donation_event_id)
+            if event is not None:
+                event["status"] = "completed"
+                event["photo_url"] = blob.public_url(approved_key)
+                event["caption"] = s.get("caption") or None
 
     def reject_submission(self, submission_id: str) -> None:
         s = self._submissions.get(submission_id)

@@ -9,7 +9,6 @@ import { Progress } from "@/components/Progress";
 import { Events } from "@/components/Events";
 import { HowItWorks } from "@/components/HowItWorks";
 import { JoinInForm } from "@/components/JoinInForm";
-import { Gallery } from "@/components/Gallery";
 import { FeaturedDonors } from "@/components/FeaturedDonors";
 import { DonorDetail } from "@/components/DonorDetail";
 import { PartnerCharities } from "@/components/PartnerCharities";
@@ -78,15 +77,24 @@ export default function Home() {
 
   useEffect(() => {
     api
-      .getContent()
-      .then(setContent)
-      .catch(() => setContentError(true));
-
-    api
       .me()
       .then(setUser)
       .catch(() => setUser(null));
   }, []);
+
+  // Re-fetches every time the visitor lands on or returns to the home
+  // view (not just once on first mount) — `view` starts as "home", so
+  // this still covers the original first-load fetch, but also picks up
+  // e.g. a donation event scheduled moments ago from "My Donations"
+  // without requiring a hard reload. See
+  // specs/features/014-homepage-scheduled-events/design.md.
+  useEffect(() => {
+    if (view !== "home") return;
+    api
+      .getContent()
+      .then(setContent)
+      .catch(() => setContentError(true));
+  }, [view]);
 
   useEffect(() => {
     if (!donorId) return;
@@ -215,7 +223,10 @@ export default function Home() {
                 milestone2027={config!.milestone2027}
                 goal2030={config!.goal2030}
               />
-              <Events events={content.events} />
+              <Events
+                events={content.events}
+                donationEvents={content.donationEvents}
+              />
             </>
           )}
 
@@ -254,12 +265,6 @@ export default function Home() {
                 </div>
               </section>
 
-              <Gallery
-                user={user}
-                gallery={content.gallery}
-                partnerCharities={content.partnerCharities}
-                onOpenSignIn={() => setShowAuthModal(true)}
-              />
               <FeaturedDonors
                 donors={content.donors}
                 onSelectDonor={openDonor}
@@ -286,10 +291,15 @@ export default function Home() {
         <AdminSignoff user={user} onUserChange={setUser} />
       )}
 
-      {view === "my-donations" && <DonorDashboard />}
+      {view === "my-donations" && (
+        <DonorDashboard partnerCharities={content?.partnerCharities ?? []} />
+      )}
 
       {view === "my-volunteering" && (
-        <VolunteerDashboard events={content?.events ?? []} />
+        <VolunteerDashboard
+          events={content?.events ?? []}
+          partnerCharities={content?.partnerCharities ?? []}
+        />
       )}
 
       <Footer

@@ -23,7 +23,6 @@ const NAV_LINKS = [
   { href: "#how-it-works", label: "How It Works" },
   { href: "#progress", label: "Progress" },
   { href: "#events", label: "Events" },
-  { href: "#gallery", label: "Gallery" },
   { href: "#donors", label: "Donors" },
 ];
 

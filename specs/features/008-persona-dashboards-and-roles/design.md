@@ -14,6 +14,12 @@ Unlike `Donors`, there's no approval gate: `create_signup` creates the
 mirroring what `approve_signup` does for donors but without the admin step
 in between — matches today's "volunteers just register" behavior.
 
+**Superseded 2026-08-03 (later the same day)**: this table now behaves
+exactly like `Donors` — a row is created by `approve_signup`, not
+`create_signup`, once an admin reviews the application. See
+[[../011-volunteer-application-approval/design]] for the updated
+`create_signup`/`approve_signup` split.
+
 ### `EventSignups` table (new — RSVP)
 PK `volunteer_id`, SK `event_id`. `created_at`. GSI `event-index` on
 `event_id` (unused today — reserved for a future admin headcount view, see

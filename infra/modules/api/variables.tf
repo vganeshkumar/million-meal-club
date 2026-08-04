@@ -71,6 +71,19 @@ variable "ses_identity_arn" {
   default     = ""
 }
 
+variable "site_base_url" {
+  type        = string
+  description = "Public origin of the frontend (e.g. https://millionmealclub.org), used to build the redirect target on the donation-event share page. Empty when no custom domain is configured — the backend falls back to a localhost default in that case, so sharing only produces a real link once a domain exists."
+  default     = ""
+}
+
+variable "geoapify_api_key" {
+  type        = string
+  description = "Geoapify Static Maps API key (free tier), used to build the og:image on the donation-event share page. Not provisioned yet (same situation as OAuth credentials) — empty disables the map image, no error, just an omitted og:image tag."
+  default     = ""
+  sensitive   = true
+}
+
 variable "tags" {
   type    = map(string)
   default = {}
