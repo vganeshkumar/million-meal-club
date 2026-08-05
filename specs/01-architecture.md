@@ -208,20 +208,25 @@ is scoped to `ses:SendEmail`/`ses:SendRawEmail` on the one verified sending
 identity ARN only, per [[00-constitution]] §7.
 
 ### Auth: client-side OAuth + backend-issued session JWT
-Google Identity Services and the Facebook Login JS SDK run client-side and
-hand the frontend a provider ID token. The frontend POSTs that token to
-`/api/auth/{provider}`; the backend verifies it against the provider's public
-keys (`google-auth` library for Google; Facebook Graph `debug_token` endpoint
-for Facebook), upserts a `Users` row, and issues its own signed JWT as an
-`HttpOnly`, `Secure`, `SameSite=Lax` cookie. No Cognito User Pool — it would
-add a moving part (and its own IAM/config surface) for something a stateless
-signed JWT already covers cleanly, since we already have a backend to issue
-and verify it.
+Google Identity Services runs client-side and hands the frontend a provider
+ID token. The frontend POSTs that token to `/api/auth/google`; the backend
+verifies it against Google's public keys (`google-auth` library), upserts a
+`Users` row, and issues its own signed JWT as an `HttpOnly`, `Secure`,
+`SameSite=Lax` cookie. No Cognito User Pool — it would add a moving part
+(and its own IAM/config surface) for something a stateless signed JWT
+already covers cleanly, since we already have a backend to issue and verify
+it.
 
 **Instagram is explicitly out of scope for sign-in** (decided with the user):
 Meta restricts standalone Instagram consumer login heavily (mostly
-business/creator accounts), and the original design only ever wired up
-Google + Facebook. Instagram stays a footer follow-link.
+business/creator accounts). Instagram stays a footer follow-link.
+
+**Update, 2026-08-05**: Facebook sign-in (originally wired up alongside
+Google) was removed — Google is the only provider for now, per the founder
+("won't need it at this stage"). See
+`specs/features/001-oauth-login/requirements.md` for the amendment; the
+Facebook-specific mechanics this section used to describe (Facebook Login JS
+SDK, Graph `debug_token` verification) are gone from the running code.
 
 ### Admin approval reuses the same login
 No separate admin credential system. The founder signs in with their normal

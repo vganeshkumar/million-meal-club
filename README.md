@@ -3,7 +3,7 @@
 A progress-tracking website for a fully volunteer-run charity that funds and
 hand-delivers meals. The site tracks progress toward 1,000,000 meals
 delivered, lets people sign up to fund or deliver meals, gates photo
-proof-of-delivery submissions behind real Google/Facebook sign-in, and
+proof-of-delivery submissions behind real Google sign-in, and
 requires the founder to manually approve a submission before it counts
 toward the public total. No money is ever collected through the site.
 
@@ -30,7 +30,7 @@ visiting:
   backend, `/photos/*` routes to approved proof-of-delivery photos, and
   everything else serves the static site. Same origin end to end, so auth
   cookies just work with no CORS complexity.
-- Auth is Google/Facebook OAuth only — no password database. The founder's
+- Auth is Google OAuth only — no password database. The founder's
   own admin access is the same login, checked against an email allowlist.
 
 See [`specs/01-architecture.md`](./specs/01-architecture.md) for the full
@@ -105,12 +105,12 @@ npm run dev
 
 Then open http://localhost:3000.
 
-**Note on sign-in:** real Google/Facebook sign-in requires OAuth app
+**Note on sign-in:** real Google sign-in requires OAuth app
 credentials that haven't been provisioned yet (see
 [`specs/features/001-oauth-login/requirements.md`](./specs/features/001-oauth-login/requirements.md)
 for exactly what to set up). Until then, the Sign In modal shows a clear
 "not configured" message rather than faking it — everything else (progress
-counter, events, Join In form, public gallery, donor spotlight, FAQ) works
+counter, events, Join In form, donor spotlight, FAQ) works
 fully without it.
 
 ## Deploy to AWS
@@ -146,8 +146,7 @@ names, then `terraform init` in that env directory.
 cd infra/envs/dev
 cp terraform.tfvars.example terraform.tfvars   # admin email, region, etc.
 cat > secrets.auto.tfvars <<EOF
-session_secret      = "$(openssl rand -hex 32)"
-facebook_app_secret = ""   # fill in once you've provisioned a Facebook app
+session_secret = "$(openssl rand -hex 32)"
 EOF
 ```
 

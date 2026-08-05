@@ -10,7 +10,6 @@ create_hosted_zone = false
 
 admin_emails     = "you@example.com"
 google_client_id = ""
-facebook_app_id  = ""
 
 # Leave empty to skip SES entirely (no donor-onboarding emails sent).
 # Remember: SES starts in sandbox mode — recipients need verifying too
@@ -18,8 +17,7 @@ facebook_app_id  = ""
 # specs/features/007-donor-application-approval/design.md.
 ses_from_email = ""
 
-# Put these in a separate gitignored *.auto.tfvars file instead (e.g.
-# secrets.auto.tfvars) rather than here, so they're never accidentally
+# Put this in a separate gitignored *.auto.tfvars file instead (e.g.
+# secrets.auto.tfvars) rather than here, so it's never accidentally
 # committed alongside non-secret config:
-# facebook_app_secret = ""
-# session_secret      = ""
+# session_secret = ""

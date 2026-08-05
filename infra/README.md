@@ -65,18 +65,16 @@ and updating the running function on every merge to main.
 
 ### 3. Secrets
 
-Never commit real values for `facebook_app_secret` or `session_secret`. Put
-them in a gitignored `secrets.auto.tfvars` file in the env directory (or
-wire up SSM Parameter Store / Secrets Manager references later — the
-variables are already marked `sensitive = true` and ready for that
-upgrade).
+Never commit a real value for `session_secret`. Put it in a gitignored
+`secrets.auto.tfvars` file in the env directory (or wire up SSM Parameter
+Store / Secrets Manager references later — the variable is already marked
+`sensitive = true` and ready for that upgrade).
 
 ```bash
 cd envs/dev
 cp terraform.tfvars.example terraform.tfvars   # non-secret config
 cat > secrets.auto.tfvars <<'EOF'
-facebook_app_secret = "..."
-session_secret      = "$(openssl rand -hex 32)"
+session_secret = "$(openssl rand -hex 32)"
 EOF
 ```
 

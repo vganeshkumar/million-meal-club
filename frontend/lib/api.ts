@@ -52,11 +52,6 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ id_token: idToken }),
     }),
-  signInWithFacebook: (accessToken: string) =>
-    request<AuthUser>("/auth/facebook", {
-      method: "POST",
-      body: JSON.stringify({ access_token: accessToken }),
-    }),
   signInDummy: (username: string, password: string) =>
     request<AuthUser>("/auth/dummy", {
       method: "POST",

@@ -39,12 +39,6 @@ export type EventItem = {
   description: string;
 };
 
-export type GalleryPhoto = {
-  id: string;
-  photoUrl: string;
-  caption?: string;
-};
-
 export type PartnerCharity = {
   id: string;
   name: string;
@@ -66,14 +60,13 @@ export type ContentResponse = {
   donors: Donor[];
   events: EventItem[];
   partnerCharities: PartnerCharity[];
-  gallery: GalleryPhoto[];
   donationEvents: DonationEvent[];
 };
 
 export type AuthUser = {
   name: string;
   email: string;
-  provider: "google" | "facebook" | "dummy";
+  provider: "google" | "dummy";
   isAdmin: boolean;
   isDonor: boolean;
   isVolunteer: boolean;

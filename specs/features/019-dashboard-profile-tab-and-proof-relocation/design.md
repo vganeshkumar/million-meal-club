@@ -41,10 +41,17 @@ label text, which is ambiguous — "My Donations" also appears as the page's
 
 ### `app/page.tsx`
 Removes the `<Gallery ... />` block and its import entirely from the
-`view === "home"` branch. `content.gallery` (the `ContentResponse` field)
-and the backend gallery plumbing are left as-is — untouched, just unused by
-any page — reviving a public gallery later is a separate decision, not this
-feature's concern.
+`view === "home"` branch.
+
+**Update, 2026-08-05**: `content.gallery` (the `ContentResponse` field) and
+the backend gallery plumbing were left as-is at the time, deliberately, per
+the paragraph above (deleted from a later revision of this file) — "reviving
+a public gallery later is a separate decision, not this feature's concern."
+That decision has now been made: no revival, and the dead plumbing was
+removed entirely (`GalleryPhoto` model/type, `ContentResponse.gallery`, and
+the `local_store.py`/`dynamo_store.py` code that populated it — the latter
+was already permanently empty in the DynamoDB backend, since nothing ever
+wrote to it there either).
 
 ### `components/Header.tsx`
 `NAV_LINKS` drops the `{ href: "#gallery", label: "Gallery" }` entry — the

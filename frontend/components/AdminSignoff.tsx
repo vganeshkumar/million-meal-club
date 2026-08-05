@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { getFacebookAccessToken, getGoogleIdToken, oauthConfigured } from "@/lib/auth";
+import { getGoogleIdToken, oauthConfigured } from "@/lib/auth";
 import type { AuthUser, SignupAdminView, SubmissionAdminView } from "@/lib/types";
 import { AdminDonors, AdminEvents, AdminVolunteers } from "@/components/AdminDirectory";
 
@@ -46,19 +46,6 @@ function SignInGate({
     }
   }
 
-  async function handleFacebook() {
-    setPending(true);
-    setError("");
-    try {
-      const accessToken = await getFacebookAccessToken();
-      onUserChange(await api.signInWithFacebook(accessToken));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Facebook sign-in failed");
-    } finally {
-      setPending(false);
-    }
-  }
-
   return (
     <div className="mx-auto max-w-[420px] px-[clamp(20px,5vw,56px)] py-[clamp(40px,6vw,72px)]">
       <h1 className="mt-0 mb-4 font-display text-2xl font-extrabold">
@@ -78,16 +65,8 @@ function SignInGate({
         >
           Continue with Google
         </button>
-        <button
-          type="button"
-          onClick={handleFacebook}
-          disabled={pending}
-          className="cursor-pointer rounded-full border-2 border-border-strong bg-transparent py-2.5 text-[15px] font-bold text-ink disabled:opacity-60"
-        >
-          Continue with Facebook
-        </button>
       </div>
-      {(!oauthConfigured.google || !oauthConfigured.facebook) && (
+      {!oauthConfigured.google && (
         <p className="mt-4 mb-0 text-xs text-muted-3 italic">
           OAuth isn&apos;t fully configured in this environment — see
           specs/features/001-oauth-login/requirements.md.

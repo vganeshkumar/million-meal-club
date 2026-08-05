@@ -33,7 +33,7 @@ class SesEmailSender:
             f"Hi {name},\n\n"
             f"Your donor application has been approved — welcome to "
             f"{self._charity_name}. You can now sign in on the site with "
-            f"the same Google or Facebook account and start submitting "
+            f"the same Google account and start submitting "
             f"proof of your deliveries.\n\n"
             f"Thank you for joining us.\n"
         )
@@ -52,7 +52,7 @@ class SesEmailSender:
             f"Hi {name},\n\n"
             f"Your volunteer application has been approved — welcome to "
             f"{self._charity_name}. You can now sign in on the site with "
-            f"the same Google or Facebook account to RSVP to events and "
+            f"the same Google account to RSVP to events and "
             f"submit proof of delivery on a donor's behalf.\n\n"
             f"Thank you for joining us.\n"
         )

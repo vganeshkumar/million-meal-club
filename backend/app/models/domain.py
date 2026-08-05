@@ -66,12 +66,6 @@ class EventItem(CamelModel):
     description: str
 
 
-class GalleryPhoto(CamelModel):
-    id: str
-    photo_url: str
-    caption: str | None = None
-
-
 class PartnerCharity(CamelModel):
     id: str
     name: str
@@ -230,7 +224,6 @@ class ContentResponse(CamelModel):
     donors: list[Donor]
     events: list[EventItem]
     partner_charities: list[PartnerCharity]
-    gallery: list[GalleryPhoto]
     # Public read-only feed for the homepage Scheduled/Completed toggle —
     # see specs/features/014-homepage-scheduled-events/design.md. Every
     # DonationEvent, any donor, any status (not scoped to "mine").
@@ -240,7 +233,7 @@ class ContentResponse(CamelModel):
 class AuthUser(CamelModel):
     name: str
     email: str
-    provider: Literal["google", "facebook", "dummy"]
+    provider: Literal["google", "dummy"]
     is_admin: bool = False
     is_donor: bool = False
     is_volunteer: bool = False
@@ -248,10 +241,6 @@ class AuthUser(CamelModel):
 
 class GoogleAuthRequest(BaseModel):
     id_token: str
-
-
-class FacebookAuthRequest(BaseModel):
-    access_token: str
 
 
 class DummyLoginRequest(BaseModel):

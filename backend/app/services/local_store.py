@@ -15,7 +15,6 @@ from app.models.domain import (
     Donor,
     DonorAdminView,
     EventItem,
-    GalleryPhoto,
     PartnerCharity,
     SignupRequest,
     SiteConfig,
@@ -56,7 +55,6 @@ class LocalStore:
         self._donations: dict[str, list[dict]] = {}
         self._events: list[dict] = []
         self._partner_charities: list[dict] = []
-        self._gallery: list[dict] = []
         self._users: dict[str, dict] = {}
         self._users_by_identity: dict[str, str] = {}
         self._signups: list[dict] = []
@@ -200,12 +198,6 @@ class LocalStore:
             ],
             events=[EventItem(**e) for e in self._events],
             partner_charities=[PartnerCharity(**c) for c in self._partner_charities],
-            gallery=[
-                GalleryPhoto(
-                    id=g["id"], photo_url=blob.public_url(g["photo_key"]), caption=g.get("caption")
-                )
-                for g in self._gallery
-            ],
             donation_events=self._public_donation_events(),
         )
 

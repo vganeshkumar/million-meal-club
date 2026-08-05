@@ -41,17 +41,6 @@ variable "google_client_id" {
   default = ""
 }
 
-variable "facebook_app_id" {
-  type    = string
-  default = ""
-}
-
-variable "facebook_app_secret" {
-  type      = string
-  default   = ""
-  sensitive = true
-}
-
 variable "session_secret" {
   type        = string
   description = "HMAC key for signing session JWTs. Required in real deployments — generate a long random value and pass it via a gitignored *.auto.tfvars file, never commit it."

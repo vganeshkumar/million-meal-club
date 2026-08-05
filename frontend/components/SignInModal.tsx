@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import { getFacebookAccessToken, getGoogleIdToken, oauthConfigured } from "@/lib/auth";
+import { getGoogleIdToken, oauthConfigured } from "@/lib/auth";
 import type { AuthUser } from "@/lib/types";
 
 const DUMMY_LOGIN_ENABLED =
@@ -35,20 +35,6 @@ export function SignInModal({ open, onClose, onSignedIn }: SignInModalProps) {
       onSignedIn(user);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Google sign-in failed");
-    } finally {
-      setPending(false);
-    }
-  }
-
-  async function handleFacebook() {
-    setPending(true);
-    setError("");
-    try {
-      const accessToken = await getFacebookAccessToken();
-      const user = await api.signInWithFacebook(accessToken);
-      onSignedIn(user);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Facebook sign-in failed");
     } finally {
       setPending(false);
     }
@@ -106,20 +92,12 @@ export function SignInModal({ open, onClose, onSignedIn }: SignInModalProps) {
           >
             Continue with Google
           </button>
-          <button
-            type="button"
-            onClick={handleFacebook}
-            disabled={pending}
-            className="cursor-pointer rounded-full border-2 border-border-strong bg-transparent py-2.5 text-[15px] font-bold text-ink disabled:opacity-60"
-          >
-            Continue with Facebook
-          </button>
         </div>
 
-        {(!oauthConfigured.google || !oauthConfigured.facebook) && (
+        {!oauthConfigured.google && (
           <p className="mt-4 mb-0 text-xs leading-[1.5] text-muted-3 italic">
             OAuth isn&apos;t fully configured in this environment yet — set
-            NEXT_PUBLIC_GOOGLE_CLIENT_ID / NEXT_PUBLIC_FACEBOOK_APP_ID (see
+            NEXT_PUBLIC_GOOGLE_CLIENT_ID (see
             specs/features/001-oauth-login/requirements.md).
           </p>
         )}

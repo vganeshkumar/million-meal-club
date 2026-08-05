@@ -19,7 +19,6 @@ from app.models.domain import (
     Donor,
     DonorAdminView,
     EventItem,
-    GalleryPhoto,
     PartnerCharity,
     SignupRequest,
     SiteConfig,
@@ -66,7 +65,6 @@ class DynamoStore:
         return resp.get("Item", {})
 
     def get_content(self) -> ContentResponse:
-        blob = get_blob_store()
         config_item = self._get_config_item()
         donors_resp = self._donors.scan()
         donors = sorted(
@@ -127,7 +125,6 @@ class DynamoStore:
                 )
                 for c in charities_resp.get("Items", [])
             ],
-            gallery=[],
             donation_events=self._public_donation_events(),
         )
 

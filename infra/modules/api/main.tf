@@ -120,9 +120,7 @@ resource "aws_lambda_function" "api" {
         PHOTOS_PUBLIC_BASE_URL  = var.photos_public_base_url
         ADMIN_EMAILS            = var.admin_emails
         GOOGLE_CLIENT_ID        = var.google_client_id
-        FACEBOOK_APP_ID         = var.facebook_app_id
       },
-      var.facebook_app_secret != "" ? { FACEBOOK_APP_SECRET = var.facebook_app_secret } : {},
       var.session_secret != "" ? { SESSION_SECRET = var.session_secret } : {},
       var.ses_from_email != "" ? { SES_FROM_EMAIL = var.ses_from_email } : {},
       var.site_base_url != "" ? { SITE_BASE_URL = var.site_base_url } : {},

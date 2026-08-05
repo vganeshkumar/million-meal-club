@@ -41,8 +41,8 @@ echo "NEXT_PUBLIC_API_BASE_URL=http://localhost:8001/api" > .env.local
 npm run dev
 ```
 
-Real Google/Facebook sign-in requires OAuth app credentials the founder
-hasn't provisioned yet (see `specs/features/001-oauth-login/requirements.md`);
+Real Google sign-in requires OAuth app credentials the founder hasn't
+provisioned yet (see `specs/features/001-oauth-login/requirements.md`);
 until then the Sign In modal shows a clear "not configured" message rather
 than faking it.
 
