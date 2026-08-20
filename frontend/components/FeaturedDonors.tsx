@@ -1,4 +1,5 @@
 import type { Donor } from "@/lib/types";
+import { ScrollRow } from "@/components/ScrollRow";
 
 type FeaturedDonorsProps = {
   donors: Donor[];
@@ -25,8 +26,8 @@ export function FeaturedDonors({ donors, onSelectDonor }: FeaturedDonorsProps) {
             their stories and see what&apos;s driving them.
           </p>
         </div>
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-6">
-          {donors.slice(0, 10).map((donor, i) => {
+        <ScrollRow>
+          {donors.map((donor, i) => {
             const isTop = i === 0;
             const accent = isTop ? "var(--accent-amber)" : "var(--accent-green)";
             return (
@@ -35,7 +36,7 @@ export function FeaturedDonors({ donors, onSelectDonor }: FeaturedDonorsProps) {
                 type="button"
                 onClick={() => onSelectDonor(donor.id)}
                 style={{ borderColor: isTop ? "var(--accent-amber)" : undefined }}
-                className="flex cursor-pointer flex-col gap-4.5 rounded-[20px] border-2 border-border bg-card p-7 text-left transition-transform hover:-translate-y-0.5 hover:shadow-[0_12px_28px_oklch(21%_0.03_155_/_0.1)]"
+                className="flex w-[280px] cursor-pointer flex-col gap-4.5 rounded-[20px] border-2 border-border bg-card p-7 text-left transition-transform hover:-translate-y-0.5 hover:shadow-[0_12px_28px_oklch(21%_0.03_155_/_0.1)]"
               >
                 <div className="flex items-center gap-3.5">
                   <div
@@ -65,7 +66,7 @@ export function FeaturedDonors({ donors, onSelectDonor }: FeaturedDonorsProps) {
               </button>
             );
           })}
-        </div>
+        </ScrollRow>
       </div>
     </section>
   );

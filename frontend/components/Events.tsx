@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ShareEventMenu } from "@/components/ShareEventMenu";
+import { ScrollRow } from "@/components/ScrollRow";
 import {
   directionsUrl,
   formatTimeRange,
@@ -15,13 +16,37 @@ type EventsProps = {
   donationEvents: DonationEvent[];
 };
 
+// Sort key only — works for both EventItem's display-string dates
+// ("Aug 16, 2026") and DonationEvent's ISO dates ("2026-09-01"), both of
+// which the Date constructor parses correctly. See
+// specs/features/029-homepage-scrollable-top5/design.md.
+function parseEventDate(date: string): number {
+  return new Date(date).getTime();
+}
+
+type ScheduledItem =
+  | { kind: "community"; date: string; event: EventItem }
+  | { kind: "donation"; date: string; event: DonationEvent };
+
 export function Events({ events, donationEvents }: EventsProps) {
   const scheduledDonationEvents = donationEvents.filter(
     (d) => d.status === "scheduled",
   );
-  const completedDonationEvents = donationEvents.filter(
-    (d) => d.status === "completed",
-  );
+  const completedDonationEvents = [...donationEvents]
+    .filter((d) => d.status === "completed")
+    .sort((a, b) => parseEventDate(b.date) - parseEventDate(a.date));
+  const scheduledItems: ScheduledItem[] = [
+    ...events.map((event) => ({
+      kind: "community" as const,
+      date: event.date,
+      event,
+    })),
+    ...scheduledDonationEvents.map((event) => ({
+      kind: "donation" as const,
+      date: event.date,
+      event,
+    })),
+  ].sort((a, b) => parseEventDate(a.date) - parseEventDate(b.date));
   const hasScheduled = events.length > 0 || scheduledDonationEvents.length > 0;
   const [tab, setTab] = useState<"scheduled" | "completed">("scheduled");
   const [selectedCompleted, setSelectedCompleted] =
@@ -79,38 +104,40 @@ export function Events({ events, donationEvents }: EventsProps) {
           </button>
         </div>
 
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-6">
-          {showScheduled ? (
-            <>
-              {events.map((ev) => (
-                <CommunityEventCard key={ev.id} event={ev} />
-              ))}
-              {scheduledDonationEvents.map((ev) => (
-                <ScheduledDonationEventCard key={ev.id} event={ev} />
-              ))}
-              {events.length === 0 && scheduledDonationEvents.length === 0 && (
-                <p className="col-span-full text-center text-sm text-muted">
-                  No scheduled events yet.
-                </p>
-              )}
-            </>
+        {showScheduled ? (
+          scheduledItems.length === 0 ? (
+            <p className="text-center text-sm text-muted">
+              No scheduled events yet.
+            </p>
           ) : (
-            <>
-              {completedDonationEvents.map((ev) => (
-                <CompletedDonationEventCard
-                  key={ev.id}
-                  event={ev}
-                  onClick={() => setSelectedCompleted(ev)}
-                />
-              ))}
-              {completedDonationEvents.length === 0 && (
-                <p className="col-span-full text-center text-sm text-muted">
-                  No completed events yet.
-                </p>
+            <ScrollRow>
+              {scheduledItems.map((item) =>
+                item.kind === "community" ? (
+                  <CommunityEventCard key={item.event.id} event={item.event} />
+                ) : (
+                  <ScheduledDonationEventCard
+                    key={item.event.id}
+                    event={item.event}
+                  />
+                ),
               )}
-            </>
-          )}
-        </div>
+            </ScrollRow>
+          )
+        ) : completedDonationEvents.length === 0 ? (
+          <p className="text-center text-sm text-muted">
+            No completed events yet.
+          </p>
+        ) : (
+          <ScrollRow>
+            {completedDonationEvents.map((ev) => (
+              <CompletedDonationEventCard
+                key={ev.id}
+                event={ev}
+                onClick={() => setSelectedCompleted(ev)}
+              />
+            ))}
+          </ScrollRow>
+        )}
       </div>
 
       {selectedCompleted && (
@@ -127,7 +154,7 @@ function CommunityEventCard({ event }: { event: EventItem }) {
   return (
     <div
       data-testid="community-event-card"
-      className="flex flex-col gap-3.5 rounded-[20px] border border-border bg-card p-7"
+      className="flex w-[280px] flex-col gap-3.5 rounded-[20px] border border-border bg-card p-7"
     >
       <div className="inline-flex self-start rounded-full bg-green-soft px-3.5 py-1.5 text-[13px] font-bold text-[var(--accent-green)]">
         {event.date} · {event.time}
@@ -161,7 +188,7 @@ function CompletedDonationEventCard({
       type="button"
       onClick={onClick}
       data-testid="donation-event-card"
-      className="flex cursor-pointer flex-col gap-3.5 rounded-[20px] border border-border bg-card p-7 text-left"
+      className="flex w-[280px] cursor-pointer flex-col gap-3.5 rounded-[20px] border border-border bg-card p-7 text-left"
     >
       {event.coverPhotoUrl && (
         <div className="-mx-7 -mt-7 h-40 overflow-hidden rounded-t-[20px]">
@@ -206,7 +233,7 @@ function ScheduledDonationEventCard({ event }: { event: DonationEvent }) {
   return (
     <div
       data-testid="donation-event-card"
-      className="flex flex-col gap-3.5 rounded-[20px] border border-border bg-card p-7 text-left"
+      className="flex w-[280px] flex-col gap-3.5 rounded-[20px] border border-border bg-card p-7 text-left"
     >
       {showMap && lat != null && lon != null && (
         <a

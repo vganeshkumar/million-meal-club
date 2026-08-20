@@ -51,6 +51,7 @@ export type PartnerCharity = {
   websiteUrl?: string;
   donationUrl?: string;
   status: MembershipStatus;
+  createdAt?: string;
 };
 
 export type SiteConfig = {
