@@ -6,7 +6,6 @@ from app.deps import Session, get_current_user, is_admin_email
 from app.models.domain import (
     AuthUser,
     DummyLoginRequest,
-    FacebookAuthRequest,
     GoogleAuthRequest,
 )
 from app.services.jwt_session import (
@@ -16,7 +15,6 @@ from app.services.jwt_session import (
 )
 from app.services.oauth import (
     OAuthVerificationError,
-    verify_facebook_token,
     verify_google_token,
 )
 from app.services.store import get_store
@@ -76,20 +74,6 @@ def sign_in_google(body: GoogleAuthRequest, response: Response) -> AuthUser:
     _reject_if_membership_disabled(user_id, email)
     _set_session_cookie(response, issue_session_token(user_id, name, email, "google"))
     return _auth_user_with_roles(user_id, name, email, "google")
-
-
-@router.post("/facebook", response_model=AuthUser)
-def sign_in_facebook(body: FacebookAuthRequest, response: Response) -> AuthUser:
-    try:
-        subject, email, name = verify_facebook_token(body.access_token)
-    except OAuthVerificationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e)
-        ) from e
-    user_id, name = get_store().get_or_create_user("facebook", subject, email, name)
-    _reject_if_membership_disabled(user_id, email)
-    _set_session_cookie(response, issue_session_token(user_id, name, email, "facebook"))
-    return _auth_user_with_roles(user_id, name, email, "facebook")
 
 
 @router.post("/dummy", response_model=AuthUser)

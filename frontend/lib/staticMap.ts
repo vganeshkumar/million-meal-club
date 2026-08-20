@@ -3,7 +3,7 @@
 // free-tier Static Maps API instead of an interactive Google Map. Until
 // NEXT_PUBLIC_GEOAPIFY_API_KEY is set, hasStaticMap() is false and callers
 // fall back to plain address text (same "not configured" pattern as
-// Google/Facebook sign-in — see frontend/lib/auth.ts). See
+// Google sign-in — see frontend/lib/auth.ts). See
 // specs/features/023-event-location-time-and-sharing/design.md.
 
 const GEOAPIFY_API_KEY = process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY ?? "";

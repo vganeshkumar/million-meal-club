@@ -6,6 +6,7 @@ from app.models.domain import (
     DonationEvent,
     Donor,
     DonorAdminView,
+    PartnerCharity,
     SignupRequest,
     Volunteer,
     VolunteerAdminView,
@@ -233,7 +234,8 @@ class Store(Protocol):
         submitted_by_user_id: str,
         location: str,
         meals: int,
-        photo_key: str,
+        photo_keys: list[str],
+        cover_photo_key: str,
         receipt_key: str | None,
         caption: str | None,
         delivery_role: str | None,
@@ -261,6 +263,54 @@ class Store(Protocol):
         ...
 
     def update_config(self, **fields) -> None: ...
+
+    def create_partner_charity(
+        self,
+        name: str,
+        location: str,
+        description: str,
+        core_services: str | None = None,
+        founder_details: str | None = None,
+        years_active: str | None = None,
+        awards_credentials: str | None = None,
+        website_url: str | None = None,
+        donation_url: str | None = None,
+    ) -> PartnerCharity:
+        """Admin-only — see
+        specs/features/026-charity-partner-admin-and-homepage/design.md."""
+        ...
+
+    def list_all_partner_charities(self) -> list[PartnerCharity]:
+        """Every partner charity, any status — admin directory (unlike
+        get_content(), which only returns active ones). See
+        specs/features/027-charity-partner-edit-and-deactivate/design.md."""
+        ...
+
+    def update_partner_charity(
+        self,
+        charity_id: str,
+        name: str,
+        location: str,
+        description: str,
+        core_services: str | None,
+        founder_details: str | None,
+        years_active: str | None,
+        awards_credentials: str | None,
+        website_url: str | None,
+        donation_url: str | None,
+    ) -> PartnerCharity:
+        """Full replace of these fields, same "not a patch-in" convention as
+        update_donation_event. Raises ValueError if the charity doesn't
+        exist."""
+        ...
+
+    def set_partner_charity_status(self, charity_id: str, status: str) -> None:
+        """Raises ValueError if the charity doesn't exist. Disabling doesn't
+        touch any DonationEvent/Submission that already recorded this
+        charity's name — those are point-in-time snapshots, not live
+        references. See
+        specs/features/027-charity-partner-edit-and-deactivate/design.md."""
+        ...
 
 
 _store: Store | None = None

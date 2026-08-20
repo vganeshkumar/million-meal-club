@@ -18,7 +18,12 @@ class Donation(CamelModel):
     location: str
     meals: int
     caption: str
-    photo_url: str | None = None
+    # Up to 5 photos per delivery, submitter-ordered; `cover_photo_url` is
+    # the one the submitter chose to represent this delivery anywhere only
+    # a single fixed-size image is shown. See
+    # specs/features/025-multi-photo-proof-with-cover/design.md.
+    photo_urls: list[str] | None = None
+    cover_photo_url: str | None = None
 
 
 class DonationMe(Donation):
@@ -61,10 +66,7 @@ class EventItem(CamelModel):
     description: str
 
 
-class GalleryPhoto(CamelModel):
-    id: str
-    photo_url: str
-    caption: str | None = None
+MembershipStatus = Literal["active", "disabled"]
 
 
 class PartnerCharity(CamelModel):
@@ -72,6 +74,13 @@ class PartnerCharity(CamelModel):
     name: str
     location: str
     description: str
+    core_services: str | None = None
+    founder_details: str | None = None
+    years_active: str | None = None
+    awards_credentials: str | None = None
+    website_url: str | None = None
+    donation_url: str | None = None
+    status: MembershipStatus = "active"
 
 
 class Volunteer(CamelModel):
@@ -110,9 +119,6 @@ class VolunteerSummary(CamelModel):
     country: str = ""
     packets_per_trip: int | None = None
     availability: str | None = None
-
-
-MembershipStatus = Literal["active", "disabled"]
 
 
 class DonorAdminView(BaseModel):
@@ -168,10 +174,12 @@ class DonationEvent(CamelModel):
     partner_charity: str | None = None
     notes: str | None = None
     # Set once the linked submission is approved (status flips to
-    # "completed") — the approved delivery photo/caption, public-safe (no
+    # "completed") — the approved delivery photos/caption, public-safe (no
     # receipt — see DonationMe for the donor-only equivalent). See
-    # specs/features/021-completed-event-details/design.md.
-    photo_url: str | None = None
+    # specs/features/021-completed-event-details/design.md and
+    # specs/features/025-multi-photo-proof-with-cover/design.md.
+    photo_urls: list[str] | None = None
+    cover_photo_url: str | None = None
     caption: str | None = None
     # `location` is now expected to be an exact address; these are
     # geocoded from it server-side (best-effort, never required — see
@@ -192,6 +200,30 @@ class CreateDonationEventRequest(BaseModel):
     delivery_role: Literal["self", "volunteer_needed"] | None = None
     partner_charity: str | None = None
     notes: str | None = None
+
+
+class CreatePartnerCharityRequest(BaseModel):
+    name: str
+    location: str
+    description: str
+    core_services: str | None = None
+    founder_details: str | None = None
+    years_active: str | None = None
+    awards_credentials: str | None = None
+    website_url: str | None = None
+    donation_url: str | None = None
+
+
+class UpdatePartnerCharityRequest(BaseModel):
+    name: str
+    location: str
+    description: str
+    core_services: str | None = None
+    founder_details: str | None = None
+    years_active: str | None = None
+    awards_credentials: str | None = None
+    website_url: str | None = None
+    donation_url: str | None = None
 
 
 class UpdateDonationEventRequest(BaseModel):
@@ -223,7 +255,6 @@ class ContentResponse(CamelModel):
     donors: list[Donor]
     events: list[EventItem]
     partner_charities: list[PartnerCharity]
-    gallery: list[GalleryPhoto]
     # Public read-only feed for the homepage Scheduled/Completed toggle —
     # see specs/features/014-homepage-scheduled-events/design.md. Every
     # DonationEvent, any donor, any status (not scoped to "mine").
@@ -233,7 +264,7 @@ class ContentResponse(CamelModel):
 class AuthUser(CamelModel):
     name: str
     email: str
-    provider: Literal["google", "facebook", "dummy"]
+    provider: Literal["google", "dummy"]
     is_admin: bool = False
     is_donor: bool = False
     is_volunteer: bool = False
@@ -241,10 +272,6 @@ class AuthUser(CamelModel):
 
 class GoogleAuthRequest(BaseModel):
     id_token: str
-
-
-class FacebookAuthRequest(BaseModel):
-    access_token: str
 
 
 class DummyLoginRequest(BaseModel):
@@ -360,7 +387,11 @@ class PresignResponse(BaseModel):
 class SubmissionRequest(BaseModel):
     location: str
     meals: int
-    photo_key: str
+    # 1-5 photos, submitter-ordered. `cover_photo_key` must be one of
+    # them if given, else defaults to the first. See
+    # specs/features/025-multi-photo-proof-with-cover/design.md.
+    photo_keys: list[str]
+    cover_photo_key: str | None = None
     receipt_key: str | None = None
     caption: str | None = None
     delivery_role: Literal["self", "volunteer_needed"] | None = None
@@ -376,6 +407,14 @@ class SubmissionRequest(BaseModel):
     # specs/features/009-scheduled-donation-events/design.md.
     donation_event_id: str | None = None
 
+    @model_validator(mode="after")
+    def _validate_photos(self) -> Self:
+        if not (1 <= len(self.photo_keys) <= 5):
+            raise ValueError("Between 1 and 5 photos are required")
+        if self.cover_photo_key and self.cover_photo_key not in self.photo_keys:
+            raise ValueError("cover_photo_key must be one of photo_keys")
+        return self
+
 
 class SubmissionResponse(BaseModel):
     submission_id: str
@@ -387,7 +426,8 @@ class SubmissionAdminView(BaseModel):
     donor_id: str
     location: str
     meals: int
-    photo_url: str
+    photo_urls: list[str]
+    cover_photo_url: str
     receipt_url: str | None = None
     caption: str | None = None
     donation_event_id: str | None = None

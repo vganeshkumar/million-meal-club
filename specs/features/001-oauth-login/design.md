@@ -1,5 +1,11 @@
 # Feature: OAuth Login — Design
 
+**Update, 2026-08-05**: Facebook sign-in removed (Google-only, per the
+founder — see requirements.md). Everything below describing
+`loadFacebookSdk()`, `signInWithFacebook`, `POST /api/auth/facebook`,
+`verify_facebook_token`, and the Facebook-specific rows/columns is
+historical — describes what was built and then retired, not current code.
+
 ## Frontend
 - `lib/auth.ts`:
   - `loadGoogleScript()` — injects `https://accounts.google.com/gsi/client`,

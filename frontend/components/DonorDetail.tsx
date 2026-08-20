@@ -92,10 +92,10 @@ export function DonorDetail({ donor, loading }: DonorDetailProps) {
               className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] items-center gap-6 rounded-[20px] border border-border bg-card p-6"
             >
               <div className="flex aspect-[4/3] items-center justify-center rounded-[14px] overflow-hidden border border-border">
-                {d.photoUrl ? (
+                {d.coverPhotoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={d.photoUrl}
+                    src={d.coverPhotoUrl}
                     alt={d.caption}
                     className="h-full w-full object-cover"
                   />

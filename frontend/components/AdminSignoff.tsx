@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { getFacebookAccessToken, getGoogleIdToken, oauthConfigured } from "@/lib/auth";
+import { getGoogleIdToken, oauthConfigured } from "@/lib/auth";
 import type { AuthUser, SignupAdminView, SubmissionAdminView } from "@/lib/types";
 import { AdminDonors, AdminEvents, AdminVolunteers } from "@/components/AdminDirectory";
+import { AdminPartnerCharities } from "@/components/AdminPartnerCharities";
 
 type AdminSignoffProps = {
   user: AuthUser | null;
@@ -46,19 +47,6 @@ function SignInGate({
     }
   }
 
-  async function handleFacebook() {
-    setPending(true);
-    setError("");
-    try {
-      const accessToken = await getFacebookAccessToken();
-      onUserChange(await api.signInWithFacebook(accessToken));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Facebook sign-in failed");
-    } finally {
-      setPending(false);
-    }
-  }
-
   return (
     <div className="mx-auto max-w-[420px] px-[clamp(20px,5vw,56px)] py-[clamp(40px,6vw,72px)]">
       <h1 className="mt-0 mb-4 font-display text-2xl font-extrabold">
@@ -78,16 +66,8 @@ function SignInGate({
         >
           Continue with Google
         </button>
-        <button
-          type="button"
-          onClick={handleFacebook}
-          disabled={pending}
-          className="cursor-pointer rounded-full border-2 border-border-strong bg-transparent py-2.5 text-[15px] font-bold text-ink disabled:opacity-60"
-        >
-          Continue with Facebook
-        </button>
       </div>
-      {(!oauthConfigured.google || !oauthConfigured.facebook) && (
+      {!oauthConfigured.google && (
         <p className="mt-4 mb-0 text-xs text-muted-3 italic">
           OAuth isn&apos;t fully configured in this environment — see
           specs/features/001-oauth-login/requirements.md.
@@ -103,6 +83,7 @@ const ADMIN_TABS = [
   { id: "donors", label: "Donors" },
   { id: "volunteers", label: "Volunteers" },
   { id: "events", label: "Events" },
+  { id: "charities", label: "Charity Partners" },
 ] as const;
 
 type AdminTab = (typeof ADMIN_TABS)[number]["id"];
@@ -133,6 +114,7 @@ function AdminTabs() {
       {tab === "donors" && <AdminDonors />}
       {tab === "volunteers" && <AdminVolunteers />}
       {tab === "events" && <AdminEvents />}
+      {tab === "charities" && <AdminPartnerCharities />}
     </div>
   );
 }
@@ -383,19 +365,27 @@ function PendingSubmissions() {
               {s.meals} meals delivered
             </p>
             <div className="mb-3 grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3">
-              <a
-                href={s.photo_url}
-                target="_blank"
-                rel="noreferrer"
-                className="block aspect-[4/3] overflow-hidden rounded-xl border border-border"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={s.photo_url}
-                  alt="Delivery proof"
-                  className="h-full w-full object-cover"
-                />
-              </a>
+              {s.photo_urls.map((url) => (
+                <a
+                  key={url}
+                  href={url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="relative block aspect-[4/3] overflow-hidden rounded-xl border border-border"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={url}
+                    alt="Delivery proof"
+                    className="h-full w-full object-cover"
+                  />
+                  {url === s.cover_photo_url && (
+                    <span className="absolute bottom-0 left-0 w-full bg-[var(--accent-green)] py-0.5 text-center text-[10px] font-bold text-ink-fg">
+                      Cover
+                    </span>
+                  )}
+                </a>
+              ))}
               {s.receipt_url && (
                 <a
                   href={s.receipt_url}

@@ -4,7 +4,11 @@ export type Donation = {
   location: string;
   meals: number;
   caption: string;
-  photoUrl?: string;
+  // Up to 5 photos, submitter-ordered; coverPhotoUrl is the one chosen to
+  // represent this delivery anywhere only a single fixed-size image is
+  // shown. See specs/features/025-multi-photo-proof-with-cover/design.md.
+  photoUrls?: string[];
+  coverPhotoUrl?: string;
   // Only ever present on GET /api/donors/me — the public Donor model
   // (also used by GET /api/donors/{id}) never carries a receipt. See
   // specs/features/021-completed-event-details/design.md.
@@ -35,17 +39,18 @@ export type EventItem = {
   description: string;
 };
 
-export type GalleryPhoto = {
-  id: string;
-  photoUrl: string;
-  caption?: string;
-};
-
 export type PartnerCharity = {
   id: string;
   name: string;
   location: string;
   description: string;
+  coreServices?: string;
+  founderDetails?: string;
+  yearsActive?: string;
+  awardsCredentials?: string;
+  websiteUrl?: string;
+  donationUrl?: string;
+  status: MembershipStatus;
 };
 
 export type SiteConfig = {
@@ -62,14 +67,13 @@ export type ContentResponse = {
   donors: Donor[];
   events: EventItem[];
   partnerCharities: PartnerCharity[];
-  gallery: GalleryPhoto[];
   donationEvents: DonationEvent[];
 };
 
 export type AuthUser = {
   name: string;
   email: string;
-  provider: "google" | "facebook" | "dummy";
+  provider: "google" | "dummy";
   isAdmin: boolean;
   isDonor: boolean;
   isVolunteer: boolean;
@@ -121,10 +125,12 @@ export type DonationEvent = {
   deliveryRole?: "self" | "volunteer_needed";
   partnerCharity?: string;
   notes?: string;
-  // Set once status flips to "completed" — the approved delivery photo/
+  // Set once status flips to "completed" — the approved delivery photos/
   // caption, public-safe (no receipt). See
-  // specs/features/021-completed-event-details/design.md.
-  photoUrl?: string;
+  // specs/features/021-completed-event-details/design.md and
+  // specs/features/025-multi-photo-proof-with-cover/design.md.
+  photoUrls?: string[];
+  coverPhotoUrl?: string;
   caption?: string;
   // `location` is an exact address going forward — these are geocoded
   // from it server-side, best-effort (may be absent). See
@@ -161,7 +167,11 @@ export type SignupPayload = {
 export type SubmissionPayload = {
   location: string;
   meals: number;
-  photo_key: string;
+  // 1-5 photos, submitter-ordered. cover_photo_key must be one of them
+  // if given, else defaults to the first. See
+  // specs/features/025-multi-photo-proof-with-cover/design.md.
+  photo_keys: string[];
+  cover_photo_key?: string;
   receipt_key?: string;
   caption?: string;
   delivery_role?: "self" | "volunteer_needed";
@@ -206,7 +216,8 @@ export type SubmissionAdminView = {
   donor_id: string;
   location: string;
   meals: number;
-  photo_url: string;
+  photo_urls: string[];
+  cover_photo_url: string;
   receipt_url?: string;
   caption?: string;
   status: "pending" | "approved" | "rejected";

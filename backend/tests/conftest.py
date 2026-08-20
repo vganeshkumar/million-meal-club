@@ -57,7 +57,7 @@ def make_session_cookie(
 ) -> str:
     """Mints a session token the same way app/services/jwt_session.py does
     for a real OAuth sign-in — lets tests act as an arbitrary already-
-    verified email without needing real Google/Facebook credentials."""
+    verified email without needing real Google credentials."""
     payload = {
         "user_id": user_id or f"user-{email}",
         "name": name,

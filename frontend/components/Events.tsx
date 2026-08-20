@@ -79,7 +79,7 @@ export function Events({ events, donationEvents }: EventsProps) {
           </button>
         </div>
 
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-6">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-6">
           {showScheduled ? (
             <>
               {events.map((ev) => (
@@ -163,11 +163,11 @@ function CompletedDonationEventCard({
       data-testid="donation-event-card"
       className="flex cursor-pointer flex-col gap-3.5 rounded-[20px] border border-border bg-card p-7 text-left"
     >
-      {event.photoUrl && (
+      {event.coverPhotoUrl && (
         <div className="-mx-7 -mt-7 h-40 overflow-hidden rounded-t-[20px]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={event.photoUrl}
+            src={event.coverPhotoUrl}
             alt="Delivery proof"
             className="h-full w-full object-cover"
           />
@@ -185,7 +185,7 @@ function CompletedDonationEventCard({
           ? `Delivered via ${event.partnerCharity}`
           : event.volunteerName
             ? `Volunteer: ${event.volunteerName}`
-            : "Unassigned — self-delivered"}
+            : "Self-delivered"}
       </p>
     </button>
   );
@@ -295,19 +295,39 @@ function CompletedEventModal({
             ? `delivered via ${event.partnerCharity}`
             : event.volunteerName
               ? `volunteer: ${event.volunteerName}`
-              : "unassigned, self-delivered"}
+              : "self-delivered"}
         </p>
         {event.caption && (
           <p className="m-0 text-sm text-muted italic">{event.caption}</p>
         )}
-        {event.photoUrl && (
+        {event.coverPhotoUrl && (
           <div className="overflow-hidden rounded-2xl border border-border">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={event.photoUrl}
+              src={event.coverPhotoUrl}
               alt="Delivery proof"
               className="w-full object-cover"
             />
+          </div>
+        )}
+        {(event.photoUrls?.length ?? 0) > 1 && (
+          <div className="grid grid-cols-4 gap-2">
+            {event.photoUrls!.map((url) => (
+              <a
+                key={url}
+                href={url}
+                target="_blank"
+                rel="noreferrer"
+                className="block aspect-square overflow-hidden rounded-lg border border-border"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={url}
+                  alt="Delivery proof"
+                  className="h-full w-full object-cover"
+                />
+              </a>
+            ))}
           </div>
         )}
       </div>

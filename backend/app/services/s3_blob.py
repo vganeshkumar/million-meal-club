@@ -22,8 +22,8 @@ class S3BlobStore:
     def presign_put(
         self, content_type: str, size: int, submission_id: str
     ) -> PresignResponse:
-        if not content_type.startswith("image/"):
-            raise ValueError("Only image uploads are allowed")
+        if not (content_type.startswith("image/") or content_type == "application/pdf"):
+            raise ValueError("Only image or PDF uploads are allowed")
         if size > MAX_UPLOAD_BYTES:
             raise ValueError("File too large")
 

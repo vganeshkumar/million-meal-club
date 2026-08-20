@@ -85,7 +85,7 @@ def test_donation_event_moves_to_submitted_after_proof(client):
         json={
             "location": "East Austin",
             "meals": 100,
-            "photo_key": "uploads/fake-key.jpg",
+            "photo_keys": ["uploads/fake-key.jpg"],
             "donation_event_id": event_id,
         },
     )
@@ -117,7 +117,7 @@ def test_rejected_submission_reopens_donation_event_to_scheduled(client):
         json={
             "location": "East Austin",
             "meals": 100,
-            "photo_key": "uploads/fake-key-2.jpg",
+            "photo_keys": ["uploads/fake-key-2.jpg"],
             "donation_event_id": event_id,
         },
     )

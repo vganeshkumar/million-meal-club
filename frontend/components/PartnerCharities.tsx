@@ -34,10 +34,60 @@ export function PartnerCharities({
             </h3>
             <p className="m-0 text-[13px] font-bold text-muted-2">
               {c.location}
+              {c.yearsActive ? ` · ${c.yearsActive}` : ""}
             </p>
             <p className="m-0 text-[14.5px] leading-[1.6] text-muted">
               {c.description}
             </p>
+            {c.coreServices && (
+              <div>
+                <p className="m-0 text-[11px] font-bold tracking-[0.06em] text-[var(--accent-green)] uppercase">
+                  Core Services
+                </p>
+                <p className="m-0 text-[14.5px] leading-[1.6] font-bold text-[var(--accent-green)]">
+                  {c.coreServices}
+                </p>
+              </div>
+            )}
+            {c.founderDetails && (
+              <div>
+                <p className="m-0 text-[11px] font-bold tracking-[0.06em] text-muted-2 uppercase">
+                  Founder
+                </p>
+                <p className="m-0 text-[14.5px] leading-[1.6] text-muted italic">
+                  {c.founderDetails}
+                </p>
+              </div>
+            )}
+            {c.awardsCredentials && (
+              <p className="m-0 text-[13.5px] leading-[1.6] text-muted-2 italic">
+                {c.awardsCredentials}
+              </p>
+            )}
+            {(c.websiteUrl || c.donationUrl) && (
+              <div className="mt-1 flex gap-4 text-[13px] font-bold">
+                {c.websiteUrl && (
+                  <a
+                    href={c.websiteUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[var(--accent-green)]"
+                  >
+                    Visit Website
+                  </a>
+                )}
+                {c.donationUrl && (
+                  <a
+                    href={c.donationUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[var(--accent-green)]"
+                  >
+                    Donate
+                  </a>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>

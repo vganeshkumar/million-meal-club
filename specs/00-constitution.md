@@ -24,8 +24,10 @@ for a volunteer-run charity site.
 
 ## 4. OAuth-only authentication
 No username/password system, no password database, no email/password reset
-flows. Google and Facebook are the only sign-in methods (Instagram is a footer
-follow-link only, not a sign-in option — see `specs/01-architecture.md` for why).
+flows. Google is the only sign-in method (Instagram is a footer
+follow-link only, not a sign-in option — see `specs/01-architecture.md` for why;
+Facebook sign-in was also removed, 2026-08-05 — see
+`specs/features/001-oauth-login/requirements.md`).
 The founder should never have to think about credential storage or resets.
 
 **One narrow, explicit exception**: a hardcoded `dummy_user`/
@@ -33,7 +35,7 @@ The founder should never have to think about credential storage or resets.
 changed from the original `dummy`/`dummy` — see
 `specs/features/008-persona-dashboards-and-roles/design.md`), with a role
 picker (admin / donor / volunteer), added so the founder can test any of
-the three personas' screens without real Google/Facebook OAuth
+the three personas' screens without real Google OAuth
 credentials. It is gated behind `ENABLE_DUMMY_LOGIN=true`, an env var
 **never set by Terraform or any deployed environment** — only ever
 exported by hand for local `uvicorn`. If this gate is ever removed or made

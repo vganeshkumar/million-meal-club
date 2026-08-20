@@ -19,7 +19,6 @@ from app.models.domain import (
     Donor,
     DonorAdminView,
     EventItem,
-    GalleryPhoto,
     PartnerCharity,
     SignupRequest,
     SiteConfig,
@@ -66,7 +65,6 @@ class DynamoStore:
         return resp.get("Item", {})
 
     def get_content(self) -> ContentResponse:
-        blob = get_blob_store()
         config_item = self._get_config_item()
         donors_resp = self._donors.scan()
         donors = sorted(
@@ -124,10 +122,17 @@ class DynamoStore:
                     name=c["name"],
                     location=c.get("location", ""),
                     description=c.get("description", ""),
+                    core_services=c.get("core_services"),
+                    founder_details=c.get("founder_details"),
+                    years_active=c.get("years_active"),
+                    awards_credentials=c.get("awards_credentials"),
+                    website_url=c.get("website_url"),
+                    donation_url=c.get("donation_url"),
+                    status=c.get("status", "active"),
                 )
                 for c in charities_resp.get("Items", [])
+                if c.get("status", "active") != "disabled"
             ],
-            gallery=[],
             donation_events=self._public_donation_events(),
         )
 
@@ -192,7 +197,12 @@ class DynamoStore:
                     location=x["location"],
                     meals=int(x["meals"]),
                     caption=x.get("caption", ""),
-                    photo_url=blob.public_url(x["photo_key"]) if x.get("photo_key") else None,
+                    photo_urls=[blob.public_url(k) for k in x["photo_keys"]]
+                    if x.get("photo_keys")
+                    else None,
+                    cover_photo_url=blob.public_url(x["cover_photo_key"])
+                    if x.get("cover_photo_key")
+                    else None,
                 )
                 for x in donations
             ],
@@ -548,7 +558,8 @@ class DynamoStore:
             delivery_role=e.get("delivery_role"),
             partner_charity=e.get("partner_charity"),
             notes=e.get("notes"),
-            photo_url=e.get("photo_url"),
+            photo_urls=e.get("photo_urls"),
+            cover_photo_url=e.get("cover_photo_url"),
             caption=e.get("caption"),
             latitude=float(latitude) if latitude is not None else None,
             longitude=float(longitude) if longitude is not None else None,
@@ -755,21 +766,23 @@ class DynamoStore:
         submitted_by_user_id: str,
         location: str,
         meals: int,
-        photo_key: str,
+        photo_keys: list[str],
+        cover_photo_key: str,
         receipt_key: str | None,
         caption: str | None,
         delivery_role: str | None,
         partner_charity: str | None,
         donation_event_id: str | None = None,
     ) -> str:
-        submission_id = photo_key.split("/")[1] if "/" in photo_key else uuid.uuid4().hex
+        submission_id = uuid.uuid4().hex
         item = {
             "submission_id": submission_id,
             "user_id": submitted_by_user_id,
             "donor_id": donor_id,
             "location": location,
             "meals": meals,
-            "photo_key": photo_key,
+            "photo_keys": photo_keys,
+            "cover_photo_key": cover_photo_key,
             "status": "pending",
             "created_at": _now(),
         }
@@ -888,7 +901,8 @@ class DynamoStore:
             out.append(
                 {
                     **s,
-                    "photo_url": blob.presign_get(s["photo_key"]),
+                    "photo_urls": [blob.presign_get(k) for k in s["photo_keys"]],
+                    "cover_photo_url": blob.presign_get(s["cover_photo_key"]),
                     "receipt_url": blob.presign_get(s["receipt_key"])
                     if s.get("receipt_key")
                     else None,
@@ -904,7 +918,11 @@ class DynamoStore:
 
         blob = get_blob_store()
         donation_id = uuid.uuid4().hex
-        approved_key = blob.copy_to_approved(s["photo_key"], donation_id)
+        approved_keys = [
+            blob.copy_to_approved(k, donation_id) for k in s["photo_keys"]
+        ]
+        cover_idx = list(s["photo_keys"]).index(s["cover_photo_key"])
+        approved_cover_key = approved_keys[cover_idx]
         donor_id = s["donor_id"]
 
         donation_item = {
@@ -914,7 +932,8 @@ class DynamoStore:
             "location": s["location"],
             "meals": s["meals"],
             "caption": s.get("caption", ""),
-            "photo_key": approved_key,
+            "photo_keys": approved_keys,
+            "cover_photo_key": approved_cover_key,
             "status": "approved",
         }
         if s.get("delivery_role"):
@@ -945,11 +964,15 @@ class DynamoStore:
         if donation_event_id:
             self._donation_events.update_item(
                 Key={"event_id": donation_event_id},
-                UpdateExpression="SET #s = :completed, photo_url = :photo_url, caption = :caption",
+                UpdateExpression=(
+                    "SET #s = :completed, photo_urls = :photo_urls, "
+                    "cover_photo_url = :cover_photo_url, caption = :caption"
+                ),
                 ExpressionAttributeNames={"#s": "status"},
                 ExpressionAttributeValues={
                     ":completed": "completed",
-                    ":photo_url": blob.public_url(approved_key),
+                    ":photo_urls": [blob.public_url(k) for k in approved_keys],
+                    ":cover_photo_url": blob.public_url(approved_cover_key),
                     ":caption": s.get("caption") or "",
                 },
             )
@@ -985,4 +1008,128 @@ class DynamoStore:
             UpdateExpression=expr,
             ExpressionAttributeNames={f"#{k}": k for k in updates},
             ExpressionAttributeValues={f":{k}": v for k, v in updates.items()},
+        )
+
+    def create_partner_charity(
+        self,
+        name: str,
+        location: str,
+        description: str,
+        core_services: str | None = None,
+        founder_details: str | None = None,
+        years_active: str | None = None,
+        awards_credentials: str | None = None,
+        website_url: str | None = None,
+        donation_url: str | None = None,
+    ) -> PartnerCharity:
+        charity_id = uuid.uuid4().hex
+        item = {
+            "charity_id": charity_id,
+            "name": name,
+            "location": location,
+            "description": description,
+            "status": "active",
+        }
+        if core_services:
+            item["core_services"] = core_services
+        if founder_details:
+            item["founder_details"] = founder_details
+        if years_active:
+            item["years_active"] = years_active
+        if awards_credentials:
+            item["awards_credentials"] = awards_credentials
+        if website_url:
+            item["website_url"] = website_url
+        if donation_url:
+            item["donation_url"] = donation_url
+        self._partner_charities.put_item(Item=item)
+        return PartnerCharity(
+            id=charity_id,
+            name=name,
+            location=location,
+            description=description,
+            core_services=core_services,
+            founder_details=founder_details,
+            years_active=years_active,
+            awards_credentials=awards_credentials,
+            website_url=website_url,
+            donation_url=donation_url,
+            status="active",
+        )
+
+    def list_all_partner_charities(self) -> list[PartnerCharity]:
+        resp = self._partner_charities.scan()
+        return [
+            PartnerCharity(
+                id=c["charity_id"],
+                name=c["name"],
+                location=c.get("location", ""),
+                description=c.get("description", ""),
+                core_services=c.get("core_services"),
+                founder_details=c.get("founder_details"),
+                years_active=c.get("years_active"),
+                awards_credentials=c.get("awards_credentials"),
+                website_url=c.get("website_url"),
+                donation_url=c.get("donation_url"),
+                status=c.get("status", "active"),
+            )
+            for c in resp.get("Items", [])
+        ]
+
+    def update_partner_charity(
+        self,
+        charity_id: str,
+        name: str,
+        location: str,
+        description: str,
+        core_services: str | None,
+        founder_details: str | None,
+        years_active: str | None,
+        awards_credentials: str | None,
+        website_url: str | None,
+        donation_url: str | None,
+    ) -> PartnerCharity:
+        resp = self._partner_charities.get_item(Key={"charity_id": charity_id})
+        item = resp.get("Item")
+        if item is None:
+            raise ValueError(f"Partner charity {charity_id} not found")
+        item.update(
+            {
+                "name": name,
+                "location": location,
+                "description": description,
+                "core_services": core_services,
+                "founder_details": founder_details,
+                "years_active": years_active,
+                "awards_credentials": awards_credentials,
+                "website_url": website_url,
+                "donation_url": donation_url,
+            }
+        )
+        # Full replace via put_item, not update_item — mirrors the "not a
+        # patch-in" convention used elsewhere for edit endpoints, and lets
+        # None values actually clear a previously-set optional field
+        # (update_item's SET can't remove an attribute this way).
+        item = {k: v for k, v in item.items() if v is not None}
+        self._partner_charities.put_item(Item=item)
+        return PartnerCharity(
+            id=charity_id,
+            name=name,
+            location=location,
+            description=description,
+            core_services=core_services,
+            founder_details=founder_details,
+            years_active=years_active,
+            awards_credentials=awards_credentials,
+            website_url=website_url,
+            donation_url=donation_url,
+            status=item.get("status", "active"),
+        )
+
+    def set_partner_charity_status(self, charity_id: str, status: str) -> None:
+        self._partner_charities.update_item(
+            Key={"charity_id": charity_id},
+            UpdateExpression="SET #s = :status",
+            ExpressionAttributeNames={"#s": "status"},
+            ExpressionAttributeValues={":status": status},
         )

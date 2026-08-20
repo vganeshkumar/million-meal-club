@@ -21,8 +21,16 @@ NOT_ALLOWED_TO_SUBMIT_DETAIL = (
 def presign_upload(
     body: PresignRequest, session: Session = Depends(get_current_user)
 ) -> PresignResponse:
-    if not body.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Only image uploads are allowed")
+    # Photos are always images; a receipt may be an image or a PDF (see
+    # the "Receipt (optional)" file inputs' accept="image/*,.pdf" in
+    # DonorDashboard.tsx/VolunteerDashboard.tsx).
+    if not (
+        body.content_type.startswith("image/")
+        or body.content_type == "application/pdf"
+    ):
+        raise HTTPException(
+            status_code=400, detail="Only image or PDF uploads are allowed"
+        )
     if body.size > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=400, detail="File too large")
     # Reject before the (wasted) upload, not just at /submissions — same
