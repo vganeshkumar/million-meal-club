@@ -125,8 +125,6 @@ resource "aws_lambda_function" "api" {
       var.ses_from_email != "" ? { SES_FROM_EMAIL = var.ses_from_email } : {},
       var.site_base_url != "" ? { SITE_BASE_URL = var.site_base_url } : {},
       var.geoapify_api_key != "" ? { GEOAPIFY_API_KEY = var.geoapify_api_key } : {},
-      var.instagram_access_token != "" ? { INSTAGRAM_ACCESS_TOKEN = var.instagram_access_token } : {},
-      var.instagram_business_account_id != "" ? { INSTAGRAM_BUSINESS_ACCOUNT_ID = var.instagram_business_account_id } : {},
       # ENABLE_DUMMY_LOGIN is deliberately never set here — it must only
       # ever be exported by hand for local `uvicorn`, never by Terraform.
       # See specs/00-constitution.md §4.

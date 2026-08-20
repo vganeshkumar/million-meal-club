@@ -73,19 +73,6 @@ variable "geoapify_api_key" {
   sensitive   = true
 }
 
-variable "instagram_access_token" {
-  type        = string
-  description = "Long-lived Meta Page access token (instagram_content_publish scope) for auto-posting to Instagram when a donation event is scheduled/completed. Not provisioned yet — empty disables posting, no error, just a logged no-op. See specs/features/030-instagram-auto-posting/design.md."
-  default     = ""
-  sensitive   = true
-}
-
-variable "instagram_business_account_id" {
-  type        = string
-  description = "Instagram Business Account ID (numeric) linked to the token above. Empty disables posting, same as instagram_access_token."
-  default     = ""
-}
-
 variable "tags" {
   type    = map(string)
   default = {}
