@@ -436,6 +436,18 @@ class SubmissionAdminView(BaseModel):
     created_at: str
 
 
+class SubmissionApprovalResult(BaseModel):
+    """Internal return value of Store.approve_submission — not a wire
+    response model (the endpoint itself stays 204 No Content); the router
+    uses this to build the best-effort Instagram post. See
+    specs/features/030-instagram-auto-posting/design.md."""
+
+    donor_name: str
+    location: str
+    meals: int
+    cover_photo_url: str | None = None
+
+
 class UpdateDonorProfileRequest(BaseModel):
     """PATCH /api/donors/me — see
     specs/features/018-profile-edit/design.md. Every field is required

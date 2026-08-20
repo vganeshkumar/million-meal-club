@@ -54,3 +54,16 @@ variable "geoapify_api_key" {
   sensitive   = true
   description = "Geoapify Static Maps API key (free tier). Empty omits the donation-event share page's og:image — see specs/features/023-event-location-time-and-sharing/design.md."
 }
+
+variable "instagram_access_token" {
+  type        = string
+  default     = ""
+  sensitive   = true
+  description = "Long-lived Meta Page access token for Instagram auto-posting. Empty disables posting — see specs/features/030-instagram-auto-posting/design.md."
+}
+
+variable "instagram_business_account_id" {
+  type        = string
+  default     = ""
+  description = "Instagram Business Account ID linked to instagram_access_token. Empty disables posting."
+}

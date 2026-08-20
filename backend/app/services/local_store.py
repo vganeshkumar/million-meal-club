@@ -18,6 +18,7 @@ from app.models.domain import (
     PartnerCharity,
     SignupRequest,
     SiteConfig,
+    SubmissionApprovalResult,
     Volunteer,
     VolunteerAdminView,
 )
@@ -751,10 +752,12 @@ class LocalStore:
             )
         return out
 
-    def approve_submission(self, submission_id: str) -> None:
+    def approve_submission(
+        self, submission_id: str
+    ) -> SubmissionApprovalResult | None:
         s = self._submissions.get(submission_id)
         if not s or s["status"] != "pending":
-            return
+            return None
         blob = get_blob_store()
         donation_id = uuid.uuid4().hex
         approved_keys = [
@@ -787,6 +790,13 @@ class LocalStore:
                 event["photo_urls"] = [blob.public_url(k) for k in approved_keys]
                 event["cover_photo_url"] = blob.public_url(approved_cover_key)
                 event["caption"] = s.get("caption") or None
+
+        return SubmissionApprovalResult(
+            donor_name=self._donors.get(donor_id, {}).get("name", ""),
+            location=s["location"],
+            meals=s["meals"],
+            cover_photo_url=blob.public_url(approved_cover_key),
+        )
 
     def reject_submission(self, submission_id: str) -> None:
         s = self._submissions.get(submission_id)

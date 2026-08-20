@@ -12,6 +12,7 @@ from app.models.domain import (
     UpdateDonationEventRequest,
 )
 from app.services.geocode import geocode
+from app.services.instagram import get_instagram_poster
 from app.services.store import get_store
 
 router = APIRouter(prefix="/donation-events", tags=["donation-events"])
@@ -33,6 +34,11 @@ CANT_EDIT_DETAIL = (
 INVALID_TIME_RANGE_DETAIL = "End time must be after start time."
 
 SITE_BASE_URL = os.environ.get("SITE_BASE_URL", "http://localhost:3000")
+# Fixed, pre-made asset (frontend/public/instagram-scheduled-event.png) —
+# there's no delivery photo yet at scheduling time, and Instagram requires
+# an image on every feed post. See
+# specs/features/030-instagram-auto-posting/design.md.
+SCHEDULED_EVENT_IMAGE_URL = f"{SITE_BASE_URL}/instagram-scheduled-event.png"
 # Static map images come from Geoapify's free-tier Static Maps API — no key
 # provisioned yet (same situation as OAuth). Empty means "not configured":
 # the share page's og:image is simply omitted, same fallback the frontend
@@ -55,6 +61,15 @@ def _static_map_url(latitude: float, longitude: float) -> str:
         f"&center=lonlat:{longitude},{latitude}&zoom=16"
         f"&marker=lonlat:{longitude},{latitude};color:%23d97b29;size:large"
         f"&apiKey={GEOAPIFY_API_KEY}"
+    )
+
+
+def _scheduled_event_caption(event: DonationEvent) -> str:
+    return (
+        f"📅 New meal delivery scheduled!\n\n"
+        f"{event.donor_name} is delivering to {event.location} on "
+        f"{event.date}.\n\n"
+        "#MillionMealClub #FightHunger #CommunityService"
     )
 
 
@@ -90,7 +105,7 @@ def create_donation_event(
 
     coords = geocode(body.location)
 
-    return store.create_donation_event(
+    event = store.create_donation_event(
         donor_id=donor_id,
         donor_name=donor.name,
         location=body.location,
@@ -106,6 +121,15 @@ def create_donation_event(
         partner_charity=body.partner_charity,
         notes=body.notes,
     )
+
+    try:
+        get_instagram_poster().post(
+            SCHEDULED_EVENT_IMAGE_URL, _scheduled_event_caption(event)
+        )
+    except Exception as e:
+        print(f"[instagram] failed to post scheduled event: {e}")
+
+    return event
 
 
 @router.get("/mine", response_model=list[DonationEvent])

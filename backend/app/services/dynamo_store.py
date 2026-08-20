@@ -22,6 +22,7 @@ from app.models.domain import (
     PartnerCharity,
     SignupRequest,
     SiteConfig,
+    SubmissionApprovalResult,
     Volunteer,
     VolunteerAdminView,
 )
@@ -915,11 +916,13 @@ class DynamoStore:
             )
         return out
 
-    def approve_submission(self, submission_id: str) -> None:
+    def approve_submission(
+        self, submission_id: str
+    ) -> SubmissionApprovalResult | None:
         resp = self._submissions.get_item(Key={"submission_id": submission_id})
         s = resp.get("Item")
         if not s or s.get("status") != "pending":
-            return
+            return None
 
         blob = get_blob_store()
         donation_id = uuid.uuid4().hex
@@ -981,6 +984,14 @@ class DynamoStore:
                     ":caption": s.get("caption") or "",
                 },
             )
+
+        donor_resp = self._donors.get_item(Key={"donor_id": donor_id})
+        return SubmissionApprovalResult(
+            donor_name=donor_resp.get("Item", {}).get("name", ""),
+            location=s["location"],
+            meals=int(s["meals"]),
+            cover_photo_url=blob.public_url(approved_cover_key),
+        )
 
     def reject_submission(self, submission_id: str) -> None:
         resp = self._submissions.get_item(Key={"submission_id": submission_id})
