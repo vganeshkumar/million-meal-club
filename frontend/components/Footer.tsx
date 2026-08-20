@@ -33,7 +33,9 @@ export function Footer({ charityName, founderName }: FooterProps) {
               Facebook — @millionmealclub
             </a>
             <a
-              href="#"
+              href="https://www.instagram.com/millionmealclub"
+              target="_blank"
+              rel="noreferrer"
               className="rounded-full bg-ink-chip px-[18px] py-2.5 text-[14.5px] font-bold text-ink-fg no-underline"
             >
               Instagram — @millionmealclub
@@ -45,10 +47,10 @@ export function Footer({ charityName, founderName }: FooterProps) {
             Get In Touch
           </p>
           <a
-            href="mailto:hello@millionmealclub.org"
+            href="mailto:millionmealclub@gmail.com"
             className="text-[14.5px] text-ink-muted underline"
           >
-            hello@millionmealclub.org
+            millionmealclub@gmail.com
           </a>
         </div>
       </div>
