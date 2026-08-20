@@ -1,12 +1,15 @@
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.deps import Session, require_admin
 from app.models.domain import (
     ConfigUpdateRequest,
+    CreatePartnerCharityRequest,
     DonationEvent,
     DonorAdminView,
+    PartnerCharity,
     SignupAdminView,
     SubmissionAdminView,
+    UpdatePartnerCharityRequest,
     VolunteerAdminView,
 )
 from app.services.email import get_email_sender
@@ -106,6 +109,65 @@ def reactivate_volunteer(
     volunteer_id: str, session: Session = Depends(require_admin)
 ) -> None:
     get_store().set_volunteer_status(volunteer_id, "active")
+
+
+@router.get("/charities", response_model=list[PartnerCharity])
+def list_all_partner_charities(
+    session: Session = Depends(require_admin),
+) -> list[PartnerCharity]:
+    """Every partner charity, any status — unlike GET /api/content, which
+    only returns active ones. See
+    specs/features/027-charity-partner-edit-and-deactivate/design.md."""
+    return get_store().list_all_partner_charities()
+
+
+@router.post(
+    "/charities", response_model=PartnerCharity, status_code=status.HTTP_201_CREATED
+)
+def create_partner_charity(
+    body: CreatePartnerCharityRequest, session: Session = Depends(require_admin)
+) -> PartnerCharity:
+    return get_store().create_partner_charity(**body.model_dump())
+
+
+@router.patch("/charities/{charity_id}", response_model=PartnerCharity)
+def update_partner_charity(
+    charity_id: str,
+    body: UpdatePartnerCharityRequest,
+    session: Session = Depends(require_admin),
+) -> PartnerCharity:
+    try:
+        return get_store().update_partner_charity(charity_id, **body.model_dump())
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Partner charity not found."
+        )
+
+
+@router.post("/charities/{charity_id}/disable", status_code=status.HTTP_204_NO_CONTENT)
+def disable_partner_charity(
+    charity_id: str, session: Session = Depends(require_admin)
+) -> None:
+    try:
+        get_store().set_partner_charity_status(charity_id, "disabled")
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Partner charity not found."
+        )
+
+
+@router.post(
+    "/charities/{charity_id}/reactivate", status_code=status.HTTP_204_NO_CONTENT
+)
+def reactivate_partner_charity(
+    charity_id: str, session: Session = Depends(require_admin)
+) -> None:
+    try:
+        get_store().set_partner_charity_status(charity_id, "active")
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Partner charity not found."
+        )
 
 
 @router.get("/donation-events", response_model=list[DonationEvent])

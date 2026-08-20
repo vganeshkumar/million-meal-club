@@ -197,7 +197,11 @@ class LocalStore:
                 for d in donors
             ],
             events=[EventItem(**e) for e in self._events],
-            partner_charities=[PartnerCharity(**c) for c in self._partner_charities],
+            partner_charities=[
+                PartnerCharity(**c)
+                for c in self._partner_charities
+                if c.get("status", "active") != "disabled"
+            ],
             donation_events=self._public_donation_events(),
         )
 
@@ -795,3 +799,68 @@ class LocalStore:
         for k, v in fields.items():
             if v is not None:
                 self._config[k] = v
+
+    def create_partner_charity(
+        self,
+        name: str,
+        location: str,
+        description: str,
+        core_services: str | None = None,
+        founder_details: str | None = None,
+        years_active: str | None = None,
+        awards_credentials: str | None = None,
+        website_url: str | None = None,
+        donation_url: str | None = None,
+    ) -> PartnerCharity:
+        charity = {
+            "id": f"charity-{uuid.uuid4().hex}",
+            "name": name,
+            "location": location,
+            "description": description,
+            "core_services": core_services,
+            "founder_details": founder_details,
+            "years_active": years_active,
+            "awards_credentials": awards_credentials,
+            "website_url": website_url,
+            "donation_url": donation_url,
+            "status": "active",
+        }
+        self._partner_charities.append(charity)
+        return PartnerCharity(**charity)
+
+    def list_all_partner_charities(self) -> list[PartnerCharity]:
+        return [PartnerCharity(**c) for c in self._partner_charities]
+
+    def _find_partner_charity(self, charity_id: str) -> dict:
+        for c in self._partner_charities:
+            if c["id"] == charity_id:
+                return c
+        raise ValueError(f"Partner charity {charity_id} not found")
+
+    def update_partner_charity(
+        self,
+        charity_id: str,
+        name: str,
+        location: str,
+        description: str,
+        core_services: str | None,
+        founder_details: str | None,
+        years_active: str | None,
+        awards_credentials: str | None,
+        website_url: str | None,
+        donation_url: str | None,
+    ) -> PartnerCharity:
+        charity = self._find_partner_charity(charity_id)
+        charity["name"] = name
+        charity["location"] = location
+        charity["description"] = description
+        charity["core_services"] = core_services
+        charity["founder_details"] = founder_details
+        charity["years_active"] = years_active
+        charity["awards_credentials"] = awards_credentials
+        charity["website_url"] = website_url
+        charity["donation_url"] = donation_url
+        return PartnerCharity(**charity)
+
+    def set_partner_charity_status(self, charity_id: str, status: str) -> None:
+        self._find_partner_charity(charity_id)["status"] = status

@@ -122,8 +122,16 @@ class DynamoStore:
                     name=c["name"],
                     location=c.get("location", ""),
                     description=c.get("description", ""),
+                    core_services=c.get("core_services"),
+                    founder_details=c.get("founder_details"),
+                    years_active=c.get("years_active"),
+                    awards_credentials=c.get("awards_credentials"),
+                    website_url=c.get("website_url"),
+                    donation_url=c.get("donation_url"),
+                    status=c.get("status", "active"),
                 )
                 for c in charities_resp.get("Items", [])
+                if c.get("status", "active") != "disabled"
             ],
             donation_events=self._public_donation_events(),
         )
@@ -1000,4 +1008,128 @@ class DynamoStore:
             UpdateExpression=expr,
             ExpressionAttributeNames={f"#{k}": k for k in updates},
             ExpressionAttributeValues={f":{k}": v for k, v in updates.items()},
+        )
+
+    def create_partner_charity(
+        self,
+        name: str,
+        location: str,
+        description: str,
+        core_services: str | None = None,
+        founder_details: str | None = None,
+        years_active: str | None = None,
+        awards_credentials: str | None = None,
+        website_url: str | None = None,
+        donation_url: str | None = None,
+    ) -> PartnerCharity:
+        charity_id = uuid.uuid4().hex
+        item = {
+            "charity_id": charity_id,
+            "name": name,
+            "location": location,
+            "description": description,
+            "status": "active",
+        }
+        if core_services:
+            item["core_services"] = core_services
+        if founder_details:
+            item["founder_details"] = founder_details
+        if years_active:
+            item["years_active"] = years_active
+        if awards_credentials:
+            item["awards_credentials"] = awards_credentials
+        if website_url:
+            item["website_url"] = website_url
+        if donation_url:
+            item["donation_url"] = donation_url
+        self._partner_charities.put_item(Item=item)
+        return PartnerCharity(
+            id=charity_id,
+            name=name,
+            location=location,
+            description=description,
+            core_services=core_services,
+            founder_details=founder_details,
+            years_active=years_active,
+            awards_credentials=awards_credentials,
+            website_url=website_url,
+            donation_url=donation_url,
+            status="active",
+        )
+
+    def list_all_partner_charities(self) -> list[PartnerCharity]:
+        resp = self._partner_charities.scan()
+        return [
+            PartnerCharity(
+                id=c["charity_id"],
+                name=c["name"],
+                location=c.get("location", ""),
+                description=c.get("description", ""),
+                core_services=c.get("core_services"),
+                founder_details=c.get("founder_details"),
+                years_active=c.get("years_active"),
+                awards_credentials=c.get("awards_credentials"),
+                website_url=c.get("website_url"),
+                donation_url=c.get("donation_url"),
+                status=c.get("status", "active"),
+            )
+            for c in resp.get("Items", [])
+        ]
+
+    def update_partner_charity(
+        self,
+        charity_id: str,
+        name: str,
+        location: str,
+        description: str,
+        core_services: str | None,
+        founder_details: str | None,
+        years_active: str | None,
+        awards_credentials: str | None,
+        website_url: str | None,
+        donation_url: str | None,
+    ) -> PartnerCharity:
+        resp = self._partner_charities.get_item(Key={"charity_id": charity_id})
+        item = resp.get("Item")
+        if item is None:
+            raise ValueError(f"Partner charity {charity_id} not found")
+        item.update(
+            {
+                "name": name,
+                "location": location,
+                "description": description,
+                "core_services": core_services,
+                "founder_details": founder_details,
+                "years_active": years_active,
+                "awards_credentials": awards_credentials,
+                "website_url": website_url,
+                "donation_url": donation_url,
+            }
+        )
+        # Full replace via put_item, not update_item — mirrors the "not a
+        # patch-in" convention used elsewhere for edit endpoints, and lets
+        # None values actually clear a previously-set optional field
+        # (update_item's SET can't remove an attribute this way).
+        item = {k: v for k, v in item.items() if v is not None}
+        self._partner_charities.put_item(Item=item)
+        return PartnerCharity(
+            id=charity_id,
+            name=name,
+            location=location,
+            description=description,
+            core_services=core_services,
+            founder_details=founder_details,
+            years_active=years_active,
+            awards_credentials=awards_credentials,
+            website_url=website_url,
+            donation_url=donation_url,
+            status=item.get("status", "active"),
+        )
+
+    def set_partner_charity_status(self, charity_id: str, status: str) -> None:
+        self._partner_charities.update_item(
+            Key={"charity_id": charity_id},
+            UpdateExpression="SET #s = :status",
+            ExpressionAttributeNames={"#s": "status"},
+            ExpressionAttributeValues={":status": status},
         )

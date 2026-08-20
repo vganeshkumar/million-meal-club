@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { getGoogleIdToken, oauthConfigured } from "@/lib/auth";
 import type { AuthUser, SignupAdminView, SubmissionAdminView } from "@/lib/types";
 import { AdminDonors, AdminEvents, AdminVolunteers } from "@/components/AdminDirectory";
+import { AdminPartnerCharities } from "@/components/AdminPartnerCharities";
 
 type AdminSignoffProps = {
   user: AuthUser | null;
@@ -82,6 +83,7 @@ const ADMIN_TABS = [
   { id: "donors", label: "Donors" },
   { id: "volunteers", label: "Volunteers" },
   { id: "events", label: "Events" },
+  { id: "charities", label: "Charity Partners" },
 ] as const;
 
 type AdminTab = (typeof ADMIN_TABS)[number]["id"];
@@ -112,6 +114,7 @@ function AdminTabs() {
       {tab === "donors" && <AdminDonors />}
       {tab === "volunteers" && <AdminVolunteers />}
       {tab === "events" && <AdminEvents />}
+      {tab === "charities" && <AdminPartnerCharities />}
     </div>
   );
 }

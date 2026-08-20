@@ -12,6 +12,7 @@ import { JoinInForm } from "@/components/JoinInForm";
 import { FeaturedDonors } from "@/components/FeaturedDonors";
 import { DonorDetail } from "@/components/DonorDetail";
 import { PartnerCharities } from "@/components/PartnerCharities";
+import { CharityPartnersSection } from "@/components/CharityPartnersSection";
 import { AdminSignoff } from "@/components/AdminSignoff";
 import { DonorDashboard } from "@/components/DonorDashboard";
 import { VolunteerDashboard } from "@/components/VolunteerDashboard";
@@ -210,24 +211,27 @@ export default function Home() {
           {/* Hero, HowItWorks, and Faq are static content (no backend
               dependency — see specs/frontend/design.md "Static content") and
               always render, even before/if GET /api/content resolves. Only
-              the sections that genuinely need real data wait on `content`. */}
+              the sections that genuinely need real data wait on `content`.
+              Progress leads the page (the meal count, ahead of the mission
+              statement in Hero) — everything else keeps its prior order. */}
+          {content && (
+            <Progress
+              totalMeals={config!.totalMeals}
+              milestone2027={config!.milestone2027}
+              goal2030={config!.goal2030}
+            />
+          )}
+
           <Hero
             charityName={config?.charityName ?? "The Million Meal Club"}
             founderName={config?.founderName ?? "Founder"}
           />
 
           {content && (
-            <>
-              <Progress
-                totalMeals={config!.totalMeals}
-                milestone2027={config!.milestone2027}
-                goal2030={config!.goal2030}
-              />
-              <Events
-                events={content.events}
-                donationEvents={content.donationEvents}
-              />
-            </>
+            <Events
+              events={content.events}
+              donationEvents={content.donationEvents}
+            />
           )}
 
           <HowItWorks />
@@ -268,6 +272,11 @@ export default function Home() {
               <FeaturedDonors
                 donors={content.donors}
                 onSelectDonor={openDonor}
+              />
+
+              <CharityPartnersSection
+                charities={content.partnerCharities}
+                onSeeAll={openCharities}
               />
             </>
           )}

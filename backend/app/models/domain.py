@@ -66,11 +66,21 @@ class EventItem(CamelModel):
     description: str
 
 
+MembershipStatus = Literal["active", "disabled"]
+
+
 class PartnerCharity(CamelModel):
     id: str
     name: str
     location: str
     description: str
+    core_services: str | None = None
+    founder_details: str | None = None
+    years_active: str | None = None
+    awards_credentials: str | None = None
+    website_url: str | None = None
+    donation_url: str | None = None
+    status: MembershipStatus = "active"
 
 
 class Volunteer(CamelModel):
@@ -109,9 +119,6 @@ class VolunteerSummary(CamelModel):
     country: str = ""
     packets_per_trip: int | None = None
     availability: str | None = None
-
-
-MembershipStatus = Literal["active", "disabled"]
 
 
 class DonorAdminView(BaseModel):
@@ -193,6 +200,30 @@ class CreateDonationEventRequest(BaseModel):
     delivery_role: Literal["self", "volunteer_needed"] | None = None
     partner_charity: str | None = None
     notes: str | None = None
+
+
+class CreatePartnerCharityRequest(BaseModel):
+    name: str
+    location: str
+    description: str
+    core_services: str | None = None
+    founder_details: str | None = None
+    years_active: str | None = None
+    awards_credentials: str | None = None
+    website_url: str | None = None
+    donation_url: str | None = None
+
+
+class UpdatePartnerCharityRequest(BaseModel):
+    name: str
+    location: str
+    description: str
+    core_services: str | None = None
+    founder_details: str | None = None
+    years_active: str | None = None
+    awards_credentials: str | None = None
+    website_url: str | None = None
+    donation_url: str | None = None
 
 
 class UpdateDonationEventRequest(BaseModel):

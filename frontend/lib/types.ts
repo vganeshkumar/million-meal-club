@@ -44,6 +44,13 @@ export type PartnerCharity = {
   name: string;
   location: string;
   description: string;
+  coreServices?: string;
+  founderDetails?: string;
+  yearsActive?: string;
+  awardsCredentials?: string;
+  websiteUrl?: string;
+  donationUrl?: string;
+  status: MembershipStatus;
 };
 
 export type SiteConfig = {

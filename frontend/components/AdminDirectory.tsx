@@ -9,7 +9,7 @@ import type {
   VolunteerAdminView,
 } from "@/lib/types";
 
-function StatusBadge({ status }: { status: MembershipStatus }) {
+export function StatusBadge({ status }: { status: MembershipStatus }) {
   return (
     <span
       className={`rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${
@@ -23,7 +23,7 @@ function StatusBadge({ status }: { status: MembershipStatus }) {
   );
 }
 
-function ToggleButton({
+export function ToggleButton({
   status,
   pending,
   onClick,

@@ -4,6 +4,7 @@ import type {
   DonationEvent,
   Donor,
   DonorAdminView,
+  PartnerCharity,
   SignupAdminView,
   SignupPayload,
   SubmissionAdminView,
@@ -174,6 +175,46 @@ export const api = {
 
   listUpcomingDonationEvents: () =>
     request<DonationEvent[]>("/admin/donation-events?status=scheduled"),
+
+  listAllPartnerCharities: () =>
+    request<PartnerCharity[]>("/admin/charities"),
+  createPartnerCharity: (payload: {
+    name: string;
+    location: string;
+    description: string;
+    core_services?: string;
+    founder_details?: string;
+    years_active?: string;
+    awards_credentials?: string;
+    website_url?: string;
+    donation_url?: string;
+  }) =>
+    request<PartnerCharity>("/admin/charities", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updatePartnerCharity: (
+    id: string,
+    payload: {
+      name: string;
+      location: string;
+      description: string;
+      core_services?: string;
+      founder_details?: string;
+      years_active?: string;
+      awards_credentials?: string;
+      website_url?: string;
+      donation_url?: string;
+    },
+  ) =>
+    request<PartnerCharity>(`/admin/charities/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  disablePartnerCharity: (id: string) =>
+    request<void>(`/admin/charities/${id}/disable`, { method: "POST" }),
+  reactivatePartnerCharity: (id: string) =>
+    request<void>(`/admin/charities/${id}/reactivate`, { method: "POST" }),
 };
 
 export async function uploadToPresignedUrl(
