@@ -199,7 +199,11 @@ class LocalStore:
             events=[EventItem(**e) for e in self._events],
             partner_charities=[
                 PartnerCharity(**c)
-                for c in self._partner_charities
+                for c in sorted(
+                    self._partner_charities,
+                    key=lambda c: c.get("created_at") or "",
+                    reverse=True,
+                )
                 if c.get("status", "active") != "disabled"
             ],
             donation_events=self._public_donation_events(),
@@ -824,6 +828,7 @@ class LocalStore:
             "website_url": website_url,
             "donation_url": donation_url,
             "status": "active",
+            "created_at": _now(),
         }
         self._partner_charities.append(charity)
         return PartnerCharity(**charity)

@@ -81,6 +81,7 @@ class PartnerCharity(CamelModel):
     website_url: str | None = None
     donation_url: str | None = None
     status: MembershipStatus = "active"
+    created_at: str | None = None
 
 
 class Volunteer(CamelModel):

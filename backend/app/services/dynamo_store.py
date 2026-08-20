@@ -129,8 +129,13 @@ class DynamoStore:
                     website_url=c.get("website_url"),
                     donation_url=c.get("donation_url"),
                     status=c.get("status", "active"),
+                    created_at=c.get("created_at"),
                 )
-                for c in charities_resp.get("Items", [])
+                for c in sorted(
+                    charities_resp.get("Items", []),
+                    key=lambda c: c.get("created_at") or "",
+                    reverse=True,
+                )
                 if c.get("status", "active") != "disabled"
             ],
             donation_events=self._public_donation_events(),
@@ -1023,12 +1028,14 @@ class DynamoStore:
         donation_url: str | None = None,
     ) -> PartnerCharity:
         charity_id = uuid.uuid4().hex
+        created_at = _now()
         item = {
             "charity_id": charity_id,
             "name": name,
             "location": location,
             "description": description,
             "status": "active",
+            "created_at": created_at,
         }
         if core_services:
             item["core_services"] = core_services
@@ -1055,6 +1062,7 @@ class DynamoStore:
             website_url=website_url,
             donation_url=donation_url,
             status="active",
+            created_at=created_at,
         )
 
     def list_all_partner_charities(self) -> list[PartnerCharity]:
@@ -1072,6 +1080,7 @@ class DynamoStore:
                 website_url=c.get("website_url"),
                 donation_url=c.get("donation_url"),
                 status=c.get("status", "active"),
+                created_at=c.get("created_at"),
             )
             for c in resp.get("Items", [])
         ]
@@ -1124,6 +1133,7 @@ class DynamoStore:
             website_url=website_url,
             donation_url=donation_url,
             status=item.get("status", "active"),
+            created_at=item.get("created_at"),
         )
 
     def set_partner_charity_status(self, charity_id: str, status: str) -> None:

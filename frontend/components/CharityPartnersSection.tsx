@@ -1,4 +1,5 @@
 import type { PartnerCharity } from "@/lib/types";
+import { ScrollRow } from "@/components/ScrollRow";
 
 type CharityPartnersSectionProps = {
   charities: PartnerCharity[];
@@ -26,11 +27,11 @@ export function CharityPartnersSection({
             Give directly to one of these vetted charities.
           </p>
         </div>
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-6">
-          {charities.slice(0, 6).map((c) => (
+        <ScrollRow>
+          {charities.map((c) => (
             <div
               key={c.id}
-              className="flex flex-col gap-2.5 rounded-[20px] border border-border bg-card p-7"
+              className="flex w-[280px] flex-col gap-2.5 rounded-[20px] border border-border bg-card p-7"
             >
               <h3 className="m-0 font-display text-[19px] font-bold">
                 {c.name}
@@ -88,7 +89,7 @@ export function CharityPartnersSection({
               )}
             </div>
           ))}
-        </div>
+        </ScrollRow>
         <div className="mt-10 text-center">
           <button
             type="button"
