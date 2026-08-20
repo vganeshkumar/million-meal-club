@@ -8,6 +8,7 @@ from app.models.domain import (
     DonorAdminView,
     PartnerCharity,
     SignupRequest,
+    SubmissionApprovalResult,
     Volunteer,
     VolunteerAdminView,
 )
@@ -253,7 +254,14 @@ class Store(Protocol):
 
     def list_submissions(self, status: str) -> list[dict]: ...
 
-    def approve_submission(self, submission_id: str) -> None: ...
+    def approve_submission(
+        self, submission_id: str
+    ) -> SubmissionApprovalResult | None:
+        """None if the submission doesn't exist or isn't pending (silent
+        no-op, unchanged from before). Otherwise returns enough detail
+        for the router's best-effort Instagram post — see
+        specs/features/030-instagram-auto-posting/design.md."""
+        ...
 
     def reject_submission(self, submission_id: str) -> None:
         """If this submission referenced a DonationEvent, reopens it back
