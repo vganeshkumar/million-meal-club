@@ -4,11 +4,13 @@ import { ScrollRow } from "@/components/ScrollRow";
 type CharityPartnersSectionProps = {
   charities: PartnerCharity[];
   onSeeAll: () => void;
+  onSelectCharity: (id: string) => void;
 };
 
 export function CharityPartnersSection({
   charities,
   onSeeAll,
+  onSelectCharity,
 }: CharityPartnersSectionProps) {
   if (charities.length === 0) return null;
 
@@ -29,9 +31,11 @@ export function CharityPartnersSection({
         </div>
         <ScrollRow>
           {charities.map((c) => (
-            <div
+            <button
               key={c.id}
-              className="flex w-[280px] flex-col gap-2.5 rounded-[20px] border border-border bg-card p-7"
+              type="button"
+              onClick={() => onSelectCharity(c.id)}
+              className="flex w-[280px] cursor-pointer flex-col gap-2.5 rounded-[20px] border border-border bg-card p-7 text-left transition-transform hover:-translate-y-0.5 hover:shadow-[0_12px_28px_oklch(21%_0.03_155_/_0.1)]"
             >
               <h3 className="m-0 font-display text-[19px] font-bold">
                 {c.name}
@@ -43,51 +47,7 @@ export function CharityPartnersSection({
               <p className="m-0 text-[14.5px] leading-[1.6] text-muted">
                 {c.description}
               </p>
-              {c.coreServices && (
-                <div>
-                  <p className="m-0 text-[11px] font-bold tracking-[0.06em] text-[var(--accent-green)] uppercase">
-                    Core Services
-                  </p>
-                  <p className="m-0 text-[14.5px] leading-[1.6] font-bold text-[var(--accent-green)]">
-                    {c.coreServices}
-                  </p>
-                </div>
-              )}
-              {c.founderDetails && (
-                <div>
-                  <p className="m-0 text-[11px] font-bold tracking-[0.06em] text-muted-2 uppercase">
-                    Founder
-                  </p>
-                  <p className="m-0 text-[14.5px] leading-[1.6] text-muted italic">
-                    {c.founderDetails}
-                  </p>
-                </div>
-              )}
-              {(c.websiteUrl || c.donationUrl) && (
-                <div className="mt-1 flex gap-4 text-[13px] font-bold">
-                  {c.websiteUrl && (
-                    <a
-                      href={c.websiteUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-[var(--accent-green)]"
-                    >
-                      Visit Website
-                    </a>
-                  )}
-                  {c.donationUrl && (
-                    <a
-                      href={c.donationUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-[var(--accent-green)]"
-                    >
-                      Donate
-                    </a>
-                  )}
-                </div>
-              )}
-            </div>
+            </button>
           ))}
         </ScrollRow>
         <div className="mt-10 text-center">

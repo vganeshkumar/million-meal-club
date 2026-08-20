@@ -1,14 +1,28 @@
+"use client";
+
+import { useEffect } from "react";
 import type { PartnerCharity } from "@/lib/types";
 
 type PartnerCharitiesProps = {
   charities: PartnerCharity[];
   onApplyAsDonor: () => void;
+  // Set when arriving from the homepage summary section's "Brief
+  // Summary" cards — scrolls to and highlights the matching card here.
+  highlightedId?: string | null;
 };
 
 export function PartnerCharities({
   charities,
   onApplyAsDonor,
+  highlightedId,
 }: PartnerCharitiesProps) {
+  useEffect(() => {
+    if (!highlightedId) return;
+    document
+      .getElementById(`charity-${highlightedId}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [highlightedId]);
+
   return (
     <div className="mx-auto max-w-[1000px] px-[clamp(20px,5vw,56px)] pt-[clamp(40px,6vw,72px)] pb-[100px]">
       <span className="text-[13px] font-bold tracking-[0.08em] text-[var(--accent-green)] uppercase">
@@ -27,7 +41,12 @@ export function PartnerCharities({
         {charities.map((c) => (
           <div
             key={c.id}
-            className="flex flex-col gap-2.5 rounded-[20px] border border-border bg-card p-7"
+            id={`charity-${c.id}`}
+            className={`flex flex-col gap-2.5 rounded-[20px] border bg-card p-7 transition-colors ${
+              c.id === highlightedId
+                ? "border-2 border-[var(--accent-green)]"
+                : "border-border"
+            }`}
           >
             <h3 className="m-0 font-display text-[19px] font-bold">
               {c.name}
