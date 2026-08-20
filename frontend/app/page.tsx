@@ -58,6 +58,11 @@ export default function Home() {
   );
   const donorMatch = /^#donor-(.+)$/.exec(hash);
   const donorId = donorMatch ? donorMatch[1] : null;
+  // `#charities` (the plain listing) and `#charities-<id>` (the listing,
+  // scrolled to and highlighting one charity — see openCharity below)
+  // both land on the same view.
+  const charityMatch = /^#charities(?:-(.+))?$/.exec(hash);
+  const highlightedCharityId = charityMatch ? (charityMatch[1] ?? null) : null;
   const view:
     | "home"
     | "donor"
@@ -66,7 +71,7 @@ export default function Home() {
     | "my-donations"
     | "my-volunteering" = donorId
     ? "donor"
-    : hash === "#charities"
+    : charityMatch
       ? "charities"
       : hash === "#admin"
         ? "admin"
@@ -135,6 +140,14 @@ export default function Home() {
   function openCharities() {
     window.location.hash = "charities";
     window.scrollTo(0, 0);
+  }
+
+  function openCharity(id: string) {
+    // Deliberately no scrollTo(0, 0) here (unlike openDonor/openCharities)
+    // — PartnerCharities scrolls straight to the target card itself once
+    // the view switches, so jumping to the top first would just add an
+    // extra visible hop.
+    window.location.hash = `charities-${id}`;
   }
 
   function openAdmin() {
@@ -277,6 +290,7 @@ export default function Home() {
               <CharityPartnersSection
                 charities={content.partnerCharities}
                 onSeeAll={openCharities}
+                onSelectCharity={openCharity}
               />
             </>
           )}
@@ -293,6 +307,7 @@ export default function Home() {
         <PartnerCharities
           charities={content.partnerCharities}
           onApplyAsDonor={applyAsDonor}
+          highlightedId={highlightedCharityId}
         />
       )}
 
