@@ -1,6 +1,18 @@
 // Client-side loader for Google Identity Services. Loaded lazily (only when
-// the Sign In modal actually opens) so the third-party script doesn't load
+// a sign-in surface actually mounts) so the third-party script doesn't load
 // on every page view. See specs/features/001-oauth-login/design.md.
+//
+// Renders Google's own "Sign in with Google" button (accounts.id.renderButton)
+// rather than relying solely on the silent One Tap prompt
+// (accounts.id.prompt()) — One Tap depends on the browser being able to
+// silently detect an existing Google session (via FedCM / third-party
+// cookies), which a growing number of real-world browser configurations
+// block, leaving prompt() showing nothing and the caller waiting on a
+// credential that never arrives. The rendered button is a direct user
+// gesture instead, so it isn't subject to that silent-detection failure
+// mode. Both paths funnel into the exact same `initialize()` callback and
+// produce the exact same ID token, so the backend verification code
+// (app/services/oauth.py) needed no changes.
 
 declare global {
   interface Window {
@@ -11,20 +23,33 @@ declare global {
             client_id: string;
             callback: (response: { credential: string }) => void;
           }) => void;
-          prompt: () => void;
+          renderButton: (
+            parent: HTMLElement,
+            options: {
+              type?: "standard" | "icon";
+              theme?: "outline" | "filled_blue" | "filled_black";
+              size?: "large" | "medium" | "small";
+              text?: "signin_with" | "signup_with" | "continue_with" | "signin";
+              shape?: "rectangular" | "pill" | "circle" | "square";
+              logo_alignment?: "left" | "center";
+              width?: number;
+            },
+          ) => void;
         };
       };
     };
   }
 }
 
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
+export const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
 export const oauthConfigured = {
   google: GOOGLE_CLIENT_ID.length > 0,
 };
 
-function loadScript(src: string, id: string): Promise<void> {
+export function loadGoogleScript(): Promise<void> {
+  const src = "https://accounts.google.com/gsi/client";
+  const id = "google-gsi";
   if (typeof document === "undefined") return Promise.resolve();
   if (document.getElementById(id)) return Promise.resolve();
   return new Promise((resolve, reject) => {
@@ -36,29 +61,5 @@ function loadScript(src: string, id: string): Promise<void> {
     script.onload = () => resolve();
     script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
     document.head.appendChild(script);
-  });
-}
-
-export async function getGoogleIdToken(): Promise<string> {
-  if (!oauthConfigured.google) {
-    throw new Error(
-      "Google sign-in isn't configured yet. Set NEXT_PUBLIC_GOOGLE_CLIENT_ID (see specs/features/001-oauth-login/requirements.md).",
-    );
-  }
-  await loadScript("https://accounts.google.com/gsi/client", "google-gsi");
-  return new Promise((resolve, reject) => {
-    if (!window.google) {
-      reject(new Error("Google Identity Services failed to load"));
-      return;
-    }
-    window.google.accounts.id.initialize({
-      client_id: GOOGLE_CLIENT_ID,
-      callback: (response) => resolve(response.credential),
-    });
-    window.google.accounts.id.prompt();
-    // If the One Tap prompt is dismissed/skipped without a credential, the
-    // callback above never fires. A caller-visible timeout keeps the UI from
-    // hanging forever in that case.
-    setTimeout(() => reject(new Error("Google sign-in timed out")), 30000);
   });
 }

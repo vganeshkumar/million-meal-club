@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { getGoogleIdToken, oauthConfigured } from "@/lib/auth";
+import { oauthConfigured } from "@/lib/auth";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import type { AuthUser, SignupAdminView, SubmissionAdminView } from "@/lib/types";
 import { AdminDonors, AdminEvents, AdminVolunteers } from "@/components/AdminDirectory";
 import { AdminPartnerCharities } from "@/components/AdminPartnerCharities";
@@ -32,20 +33,6 @@ function SignInGate({
   onUserChange: (user: AuthUser) => void;
 }) {
   const [error, setError] = useState("");
-  const [pending, setPending] = useState(false);
-
-  async function handleGoogle() {
-    setPending(true);
-    setError("");
-    try {
-      const idToken = await getGoogleIdToken();
-      onUserChange(await api.signInWithGoogle(idToken));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Google sign-in failed");
-    } finally {
-      setPending(false);
-    }
-  }
 
   return (
     <div className="mx-auto max-w-[420px] px-[clamp(20px,5vw,56px)] py-[clamp(40px,6vw,72px)]">
@@ -57,16 +44,11 @@ function SignInGate({
         if you&apos;re testing locally.
       </p>
       {error && <p className="m-0 mb-3 text-sm text-red-700">{error}</p>}
-      <div className="flex flex-col gap-2.5">
-        <button
-          type="button"
-          onClick={handleGoogle}
-          disabled={pending}
-          className="cursor-pointer rounded-full border-none bg-ink py-3.5 text-[15px] font-bold text-ink-fg disabled:opacity-60"
-        >
-          Continue with Google
-        </button>
-      </div>
+      {oauthConfigured.google && (
+        <div className="flex flex-col gap-2.5">
+          <GoogleSignInButton onSignedIn={onUserChange} onError={setError} />
+        </div>
+      )}
       {!oauthConfigured.google && (
         <p className="mt-4 mb-0 text-xs text-muted-3 italic">
           OAuth isn&apos;t fully configured in this environment — see
