@@ -13,18 +13,9 @@ from app.models.domain import (
     VolunteerAdminView,
 )
 from app.services.email import get_email_sender
-from app.services.instagram import get_instagram_poster
 from app.services.store import get_store
 
 router = APIRouter(prefix="/admin", tags=["admin"])
-
-
-def _completed_event_caption(donor_name: str, location: str, meals: int) -> str:
-    return (
-        f"✅ {meals:,} meals delivered to {location}, thanks to {donor_name}!\n\n"
-        "Every packet gets us one step closer to a million lives changed.\n\n"
-        "#MillionMealClub #FightHunger #MealsDelivered"
-    )
 
 
 @router.get("/submissions", response_model=list[SubmissionAdminView])
@@ -41,17 +32,7 @@ def list_submissions(
 def approve_submission(
     submission_id: str, session: Session = Depends(require_admin)
 ) -> None:
-    result = get_store().approve_submission(submission_id)
-    if result and result.cover_photo_url:
-        try:
-            get_instagram_poster().post(
-                result.cover_photo_url,
-                _completed_event_caption(
-                    result.donor_name, result.location, result.meals
-                ),
-            )
-        except Exception as e:
-            print(f"[instagram] failed to post completed event: {e}")
+    get_store().approve_submission(submission_id)
 
 
 @router.post(
