@@ -80,6 +80,7 @@ class PartnerCharity(CamelModel):
     awards_credentials: str | None = None
     website_url: str | None = None
     donation_url: str | None = None
+    tax_refund_eligible: bool | None = None
     status: MembershipStatus = "active"
     created_at: str | None = None
 
@@ -213,6 +214,7 @@ class CreatePartnerCharityRequest(BaseModel):
     awards_credentials: str | None = None
     website_url: str | None = None
     donation_url: str | None = None
+    tax_refund_eligible: bool | None = None
 
 
 class UpdatePartnerCharityRequest(BaseModel):
@@ -225,6 +227,7 @@ class UpdatePartnerCharityRequest(BaseModel):
     awards_credentials: str | None = None
     website_url: str | None = None
     donation_url: str | None = None
+    tax_refund_eligible: bool | None = None
 
 
 class UpdateDonationEventRequest(BaseModel):

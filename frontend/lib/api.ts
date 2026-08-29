@@ -188,6 +188,7 @@ export const api = {
     awards_credentials?: string;
     website_url?: string;
     donation_url?: string;
+    tax_refund_eligible?: boolean;
   }) =>
     request<PartnerCharity>("/admin/charities", {
       method: "POST",
@@ -205,6 +206,7 @@ export const api = {
       awards_credentials?: string;
       website_url?: string;
       donation_url?: string;
+      tax_refund_eligible?: boolean;
     },
   ) =>
     request<PartnerCharity>(`/admin/charities/${id}`, {

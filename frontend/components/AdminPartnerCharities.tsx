@@ -19,9 +19,11 @@ type CharityFormFields = {
   awards_credentials?: string;
   website_url?: string;
   donation_url?: string;
+  tax_refund_eligible?: boolean;
 };
 
 function readForm(form: FormData): CharityFormFields {
+  const taxRefundEligible = form.get("tax_refund_eligible");
   return {
     name: String(form.get("name") ?? ""),
     location: String(form.get("location") ?? ""),
@@ -32,6 +34,12 @@ function readForm(form: FormData): CharityFormFields {
     awards_credentials: (form.get("awards_credentials") as string) || undefined,
     website_url: (form.get("website_url") as string) || undefined,
     donation_url: (form.get("donation_url") as string) || undefined,
+    tax_refund_eligible:
+      taxRefundEligible === "yes"
+        ? true
+        : taxRefundEligible === "no"
+          ? false
+          : undefined,
   };
 }
 
@@ -108,6 +116,29 @@ function CharityFields({ defaults }: { defaults?: PartnerCharity }) {
           className={`${fieldClass} resize-y`}
         />
       </label>
+      <div className={labelClass}>
+        Eligible for tax refund? (optional)
+        <div className="flex gap-5 text-sm font-normal">
+          <label className="flex items-center gap-1.5">
+            <input
+              type="radio"
+              name="tax_refund_eligible"
+              value="yes"
+              defaultChecked={defaults?.taxRefundEligible === true}
+            />
+            Yes
+          </label>
+          <label className="flex items-center gap-1.5">
+            <input
+              type="radio"
+              name="tax_refund_eligible"
+              value="no"
+              defaultChecked={defaults?.taxRefundEligible === false}
+            />
+            No
+          </label>
+        </div>
+      </div>
       <label className={labelClass}>
         Website link (optional)
         <input

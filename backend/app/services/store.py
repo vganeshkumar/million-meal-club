@@ -275,6 +275,7 @@ class Store(Protocol):
         awards_credentials: str | None = None,
         website_url: str | None = None,
         donation_url: str | None = None,
+        tax_refund_eligible: bool | None = None,
     ) -> PartnerCharity:
         """Admin-only — see
         specs/features/026-charity-partner-admin-and-homepage/design.md."""
@@ -298,6 +299,7 @@ class Store(Protocol):
         awards_credentials: str | None,
         website_url: str | None,
         donation_url: str | None,
+        tax_refund_eligible: bool | None,
     ) -> PartnerCharity:
         """Full replace of these fields, same "not a patch-in" convention as
         update_donation_event. Raises ValueError if the charity doesn't
