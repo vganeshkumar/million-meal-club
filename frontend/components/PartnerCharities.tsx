@@ -63,9 +63,16 @@ export function PartnerCharities({
                 <p className="m-0 text-[11px] font-bold tracking-[0.06em] text-[var(--accent-green)] uppercase">
                   Core Services
                 </p>
-                <p className="m-0 text-[14.5px] leading-[1.6] font-bold text-[var(--accent-green)]">
-                  {c.coreServices}
-                </p>
+                {/* One line entered in the admin form = one bullet — a
+                    plain <p> collapses the admin's newlines into a single
+                    run-on paragraph, which is what this list fixes. */}
+                <ul className="m-0 list-disc pl-[18px] text-[14.5px] leading-[1.6] font-bold text-[var(--accent-green)]">
+                  {c.coreServices
+                    .split("\n")
+                    .map((line) => line.trim())
+                    .filter(Boolean)
+                    .map((line, i) => <li key={i}>{line}</li>)}
+                </ul>
               </div>
             )}
             {c.founderDetails && (
