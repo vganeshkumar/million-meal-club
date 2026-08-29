@@ -7,8 +7,10 @@
 - [ ] Frontend: `AdminPartnerCharities.tsx` form gains the Yes/No radio
       group, optional, defaulting to unanswered.
 - [ ] Frontend: `PartnerCharities.tsx` renders the indicator when `true`.
+- [ ] Frontend: `CharityPartnersSection.tsx` (homepage) renders the same
+      indicator when `true`.
 - [ ] Manual test: add a charity answering "Yes", confirm the indicator
-      renders on `#charities`; leave it unanswered on another charity and
-      confirm nothing renders; edit an existing charity to "No" and
-      confirm nothing renders and the radio round-trips correctly on
-      re-opening the edit form.
+      renders on `#charities` and on the homepage; leave it unanswered on
+      another charity and confirm nothing renders in either place; edit
+      an existing charity to "No" and confirm nothing renders and the
+      radio round-trips correctly on re-opening the edit form.

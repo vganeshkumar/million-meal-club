@@ -47,6 +47,11 @@ export function CharityPartnersSection({
               <p className="m-0 text-[14.5px] leading-[1.6] text-muted">
                 {c.description}
               </p>
+              {c.taxRefundEligible && (
+                <p className="m-0 text-[13px] font-bold text-[var(--accent-green)]">
+                  Eligible for Tax Refund
+                </p>
+              )}
             </button>
           ))}
         </ScrollRow>

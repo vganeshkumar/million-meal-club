@@ -17,10 +17,11 @@ would want to know.
   indicator on a charity's card when the admin has answered "Yes". When
   unanswered or answered "No", nothing renders — same convention as the
   other optional charity fields (no explicit "Not eligible" messaging).
+- The homepage "Charity Partners" summary cards
+  (`CharityPartnersSection.tsx`) show the same indicator when the admin
+  has answered "Yes". Same convention: nothing renders when unanswered
+  or "No".
 
 ## Out of scope
-- The homepage "Charity Partners" summary cards (`CharityPartnersSection.tsx`)
-  — those only ever show name/location/years-active/description, and this
-  feature doesn't change that.
 - Any tax/legal validation of the claim — this is just an admin-entered
   flag, same trust level as the other free-text charity fields.

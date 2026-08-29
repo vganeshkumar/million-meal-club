@@ -27,5 +27,9 @@
   renders a small bold accent-colored "Eligible for Tax Refund" line
   when `c.taxRefundEligible` is `true`. Omitted otherwise (unanswered or
   `false`) — same convention as the other optional fields on this card.
-- No change to `CharityPartnersSection.tsx` (homepage summary) or the
-  admin's own abbreviated list card — out of scope, see requirements.
+- `components/CharityPartnersSection.tsx` (homepage summary card): same
+  small bold accent-colored "Eligible for Tax Refund" line, rendered
+  under the description when `c.taxRefundEligible` is `true`. Omitted
+  otherwise, same convention.
+- No change to the admin's own abbreviated list card — out of scope, see
+  requirements.
