@@ -90,6 +90,11 @@ export function PartnerCharities({
                 {c.awardsCredentials}
               </p>
             )}
+            {c.taxRefundEligible && (
+              <p className="m-0 text-[13px] font-bold text-[var(--accent-green)]">
+                Eligible for Tax Refund
+              </p>
+            )}
             {(c.websiteUrl || c.donationUrl) && (
               <div className="mt-1 flex gap-4 text-[13px] font-bold">
                 {c.websiteUrl && (

@@ -1026,6 +1026,7 @@ class DynamoStore:
         awards_credentials: str | None = None,
         website_url: str | None = None,
         donation_url: str | None = None,
+        tax_refund_eligible: bool | None = None,
     ) -> PartnerCharity:
         charity_id = uuid.uuid4().hex
         created_at = _now()
@@ -1049,6 +1050,8 @@ class DynamoStore:
             item["website_url"] = website_url
         if donation_url:
             item["donation_url"] = donation_url
+        if tax_refund_eligible is not None:
+            item["tax_refund_eligible"] = tax_refund_eligible
         self._partner_charities.put_item(Item=item)
         return PartnerCharity(
             id=charity_id,
@@ -1061,6 +1064,7 @@ class DynamoStore:
             awards_credentials=awards_credentials,
             website_url=website_url,
             donation_url=donation_url,
+            tax_refund_eligible=tax_refund_eligible,
             status="active",
             created_at=created_at,
         )
@@ -1079,6 +1083,7 @@ class DynamoStore:
                 awards_credentials=c.get("awards_credentials"),
                 website_url=c.get("website_url"),
                 donation_url=c.get("donation_url"),
+                tax_refund_eligible=c.get("tax_refund_eligible"),
                 status=c.get("status", "active"),
                 created_at=c.get("created_at"),
             )
@@ -1097,6 +1102,7 @@ class DynamoStore:
         awards_credentials: str | None,
         website_url: str | None,
         donation_url: str | None,
+        tax_refund_eligible: bool | None,
     ) -> PartnerCharity:
         resp = self._partner_charities.get_item(Key={"charity_id": charity_id})
         item = resp.get("Item")
@@ -1113,6 +1119,7 @@ class DynamoStore:
                 "awards_credentials": awards_credentials,
                 "website_url": website_url,
                 "donation_url": donation_url,
+                "tax_refund_eligible": tax_refund_eligible,
             }
         )
         # Full replace via put_item, not update_item — mirrors the "not a
@@ -1132,6 +1139,7 @@ class DynamoStore:
             awards_credentials=awards_credentials,
             website_url=website_url,
             donation_url=donation_url,
+            tax_refund_eligible=tax_refund_eligible,
             status=item.get("status", "active"),
             created_at=item.get("created_at"),
         )

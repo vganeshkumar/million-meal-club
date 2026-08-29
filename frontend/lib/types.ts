@@ -50,6 +50,7 @@ export type PartnerCharity = {
   awardsCredentials?: string;
   websiteUrl?: string;
   donationUrl?: string;
+  taxRefundEligible?: boolean;
   status: MembershipStatus;
   createdAt?: string;
 };

@@ -815,6 +815,7 @@ class LocalStore:
         awards_credentials: str | None = None,
         website_url: str | None = None,
         donation_url: str | None = None,
+        tax_refund_eligible: bool | None = None,
     ) -> PartnerCharity:
         charity = {
             "id": f"charity-{uuid.uuid4().hex}",
@@ -827,6 +828,7 @@ class LocalStore:
             "awards_credentials": awards_credentials,
             "website_url": website_url,
             "donation_url": donation_url,
+            "tax_refund_eligible": tax_refund_eligible,
             "status": "active",
             "created_at": _now(),
         }
@@ -854,6 +856,7 @@ class LocalStore:
         awards_credentials: str | None,
         website_url: str | None,
         donation_url: str | None,
+        tax_refund_eligible: bool | None,
     ) -> PartnerCharity:
         charity = self._find_partner_charity(charity_id)
         charity["name"] = name
@@ -865,6 +868,7 @@ class LocalStore:
         charity["awards_credentials"] = awards_credentials
         charity["website_url"] = website_url
         charity["donation_url"] = donation_url
+        charity["tax_refund_eligible"] = tax_refund_eligible
         return PartnerCharity(**charity)
 
     def set_partner_charity_status(self, charity_id: str, status: str) -> None:
