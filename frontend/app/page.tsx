@@ -19,6 +19,10 @@ import { VolunteerDashboard } from "@/components/VolunteerDashboard";
 import { Faq } from "@/components/Faq";
 import { Footer } from "@/components/Footer";
 import { SignInModal } from "@/components/SignInModal";
+import {
+  EngineeringBlogPost,
+  EngineeringBlogTeaser,
+} from "@/components/EngineeringBlog";
 
 const DEFAULT_ACCENT: [string, string] = [
   "oklch(38% 0.1 155)",
@@ -69,7 +73,8 @@ export default function Home() {
     | "charities"
     | "admin"
     | "my-donations"
-    | "my-volunteering" = donorId
+    | "my-volunteering"
+    | "blog" = donorId
     ? "donor"
     : charityMatch
       ? "charities"
@@ -79,7 +84,9 @@ export default function Home() {
           ? "my-donations"
           : hash === "#my-volunteering"
             ? "my-volunteering"
-            : "home";
+            : hash === "#engineering-blog"
+              ? "blog"
+              : "home";
 
   useEffect(() => {
     api
@@ -165,6 +172,11 @@ export default function Home() {
     window.scrollTo(0, 0);
   }
 
+  function openEngineeringBlog() {
+    window.location.hash = "engineering-blog";
+    window.scrollTo(0, 0);
+  }
+
   function applyAsDonor() {
     // Clears the hash (→ view becomes "home" once re-rendered) then
     // scrolls to #participate a frame later, once that section actually
@@ -202,6 +214,7 @@ export default function Home() {
         isAdminView={view === "admin"}
         isMyDonationsView={view === "my-donations"}
         isMyVolunteeringView={view === "my-volunteering"}
+        isBlogView={view === "blog"}
         user={user}
         onSignIn={() => setShowAuthModal(true)}
         onSignOut={handleSignOut}
@@ -296,6 +309,8 @@ export default function Home() {
           )}
 
           <Faq />
+
+          <EngineeringBlogTeaser onOpen={openEngineeringBlog} />
         </>
       )}
 
@@ -325,6 +340,8 @@ export default function Home() {
           partnerCharities={content?.partnerCharities ?? []}
         />
       )}
+
+      {view === "blog" && <EngineeringBlogPost />}
 
       <Footer
         charityName={config?.charityName ?? "The Million Meal Club"}

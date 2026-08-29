@@ -9,6 +9,7 @@ type HeaderProps = {
   isAdminView: boolean;
   isMyDonationsView: boolean;
   isMyVolunteeringView: boolean;
+  isBlogView: boolean;
   user: AuthUser | null;
   onSignIn: () => void;
   onSignOut: () => void;
@@ -33,6 +34,7 @@ export function Header({
   isAdminView,
   isMyDonationsView,
   isMyVolunteeringView,
+  isBlogView,
   user,
   onSignIn,
   onSignOut,
@@ -43,7 +45,12 @@ export function Header({
   onOpenMyVolunteering,
 }: HeaderProps) {
   const showBackButton =
-    isDonorView || isCharitiesView || isAdminView || isMyDonationsView || isMyVolunteeringView;
+    isDonorView ||
+    isCharitiesView ||
+    isAdminView ||
+    isMyDonationsView ||
+    isMyVolunteeringView ||
+    isBlogView;
 
   return (
     <header className="sticky top-0 z-50 flex flex-wrap items-center justify-between gap-4 border-b border-border bg-bg/92 px-[clamp(20px,5vw,56px)] py-4 backdrop-blur-sm">
