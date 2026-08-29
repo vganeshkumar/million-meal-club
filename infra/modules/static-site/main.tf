@@ -84,8 +84,14 @@ resource "aws_cloudfront_distribution" "this" {
     compress                 = true
   }
 
+  # Matches the actual S3 key prefix ("approved/..."), not a "/photos/"
+  # namespace — CloudFront forwards the full request path to the origin
+  # unmodified (no path stripping without a CloudFront Function/Lambda@Edge
+  # rewrite, which this distribution doesn't have), so the path pattern
+  # must equal the real object prefix or every request 403s against the
+  # bucket policy (which also only grants "approved/*").
   ordered_cache_behavior {
-    path_pattern           = "/photos/*"
+    path_pattern           = "/approved/*"
     target_origin_id       = local.photos_origin_id
     viewer_protocol_policy = "redirect-to-https"
     allowed_methods        = ["GET", "HEAD"]

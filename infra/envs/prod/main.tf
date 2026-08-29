@@ -57,10 +57,11 @@ module "api" {
   table_arns         = module.data.table_arns
   photos_bucket_name = module.photos.bucket_id
   photos_bucket_arn  = module.photos.bucket_arn
-  # A plain relative path, not a full URL — every image render happens
-  # same-origin (CloudFront's /photos/* behavior routes here), so no
-  # domain is needed and no dependency on module.static_site is created.
-  photos_public_base_url = "/photos"
+  # Empty — every image render happens same-origin, and CloudFront's
+  # /approved/* behavior (modules/static-site) routes there using the key
+  # prefix as-is, no extra path segment. See that module's comment for why
+  # a "/photos" prefix here doesn't work (CloudFront doesn't strip it).
+  photos_public_base_url = ""
   admin_emails           = var.admin_emails
   google_client_id       = var.google_client_id
   session_secret         = var.session_secret
