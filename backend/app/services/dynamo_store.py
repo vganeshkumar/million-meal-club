@@ -128,6 +128,7 @@ class DynamoStore:
                     awards_credentials=c.get("awards_credentials"),
                     website_url=c.get("website_url"),
                     donation_url=c.get("donation_url"),
+                    tax_refund_eligible=c.get("tax_refund_eligible"),
                     status=c.get("status", "active"),
                     created_at=c.get("created_at"),
                 )
