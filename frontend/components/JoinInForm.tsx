@@ -218,7 +218,7 @@ export function JoinInForm({ user, partnerCharities }: JoinInFormProps) {
         <>
           <div className="rounded-xl bg-green-soft px-4 py-3.5 text-[13.5px] leading-[1.6] font-semibold text-[var(--accent-green)]">
             Donors are by invitation only and commit to delivering a minimum
-            of 50,000 meals within 4 years of joining.
+            of 10,000 meals within 5 years of joining.
           </div>
           <label className={labelClass}>
             Number of Food Packets (to start)
@@ -287,7 +287,7 @@ export function JoinInForm({ user, partnerCharities }: JoinInFormProps) {
               required
               className="mt-1"
             />
-            I commit to delivering at least 50,000 meals within 4 years of
+            I commit to delivering at least 10,000 meals within 5 years of
             joining as a donor.
           </label>
           <label className="flex items-start gap-2.5 text-sm leading-[1.5] font-medium">

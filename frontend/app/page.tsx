@@ -265,7 +265,7 @@ export default function Home() {
                     </h2>
                     <p className="m-0 mb-5 max-w-[460px] text-base leading-[1.7] text-muted">
                       Donors join by invitation only, committing to deliver
-                      at least 50,000 meals over 4 years — apply below and
+                      at least 10,000 meals over 5 years — apply below and
                       I&apos;ll personally follow up. Not ready for that
                       commitment? Register to volunteer instead, collecting
                       and delivering for a donor who needs a hand.
