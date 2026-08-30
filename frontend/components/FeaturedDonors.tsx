@@ -22,7 +22,7 @@ export function FeaturedDonors({ donors, onSelectDonor }: FeaturedDonorsProps) {
           </h2>
           <p className="m-0 text-base leading-[1.65] text-muted">
             Our donors join by invitation only, each committing to at least
-            50,000 meals over 4 years. Ranked by meals delivered — read
+            10,000 meals over 5 years. Ranked by meals delivered — read
             their stories and see what&apos;s driving them.
           </p>
         </div>
