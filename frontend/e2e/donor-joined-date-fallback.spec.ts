@@ -66,17 +66,19 @@ test("a donor with no donations shows a joined date, on both their detail page a
 
   // Homepage "Featured Donors" card: 0 meals delivered, so the joined
   // line takes its place instead of the usual meals-delivered stat.
+  // Date-only, no timestamp — YYYY-MM-DD and nothing after it.
+  const joinedDateOnly = /^Joined \d{4}-\d{2}-\d{2}$/;
   await page.goto("/");
   const homepageCard = page.locator("button").filter({ hasText: name });
   await expect(homepageCard).toBeVisible();
-  await expect(homepageCard.getByText(/^Joined /)).toBeVisible();
+  await expect(homepageCard.getByText(joinedDateOnly)).toBeVisible();
   await expect(homepageCard).not.toContainText("meals delivered");
 
   // Public detail page: the delivery list is empty, so the joined line
   // takes its place.
   await page.goto(`/#donor-${donorId}`);
   await expect(page.getByText("Their Deliveries")).toBeVisible();
-  await expect(page.getByText(/^Joined /)).toBeVisible();
+  await expect(page.getByText(joinedDateOnly)).toBeVisible();
 
   // Sign out of the admin session, sign in as the donor themselves, and
   // check the same thing on their own dashboard.
@@ -94,5 +96,7 @@ test("a donor with no donations shows a joined date, on both their detail page a
   await page
     .getByRole("button", { name: "Completed Events", exact: true })
     .click();
-  await expect(page.getByText(/No completed deliveries yet\. Joined /)).toBeVisible();
+  await expect(
+    page.getByText(/^No completed deliveries yet\. Joined \d{4}-\d{2}-\d{2}\.$/),
+  ).toBeVisible();
 });

@@ -11,11 +11,11 @@
 - `LocalStore.get_donor` / `DynamoStore.get_donor`: read it back via
   `created_at=d.get("created_at")` (absent → `None`, matching every other
   optional field read from a possibly-older stored record).
-- No format conversion anywhere — `created_at` is the same raw ISO string
-  `_now()` produces, displayed as-is. Matches the existing convention
-  (`AdminSignoff.tsx` already renders `created_at`/`s.created_at` raw,
-  unformatted, for signups/applications) rather than introducing a new
-  date-formatting utility for this one field.
+- The backend stores/returns the full ISO timestamp `_now()` produces,
+  unchanged — no backend-side format conversion. Trimming to a bare date
+  is a display concern, done on the frontend (see below), not baked into
+  the API response — other consumers of `created_at` (e.g. any future
+  admin view wanting precision) aren't forced into date-only.
 - `update_donor_profile` in both stores re-reads via `get_donor` after
   writing, so it picks up `created_at` for free — no separate change
   needed there.
@@ -29,20 +29,26 @@
 
 ## Frontend
 - `lib/types.ts`: `Donor` gains `createdAt?: string`.
+- Every display point shows only the date portion —
+  `donor.createdAt.slice(0, 10)` (the ISO timestamp's `YYYY-MM-DD`
+  prefix), not the full timestamp. A one-liner repeated three times
+  rather than a shared helper — not enough duplication to justify one.
 - `components/FeaturedDonors.tsx`: each homepage donor card renders
-  `Joined {donor.createdAt}` in place of the
+  `Joined {donor.createdAt.slice(0, 10)}` in place of the
   `{donor.totalMeals} meals delivered` stat when
   `donor.donationCount === 0` **and** `donor.createdAt` is present.
   Unchanged (still shows "0 meals delivered") when either condition
   fails — covers donors approved before this field existed.
 - `components/DonorDetail.tsx`: directly above the existing
-  `donor.donations.map(...)` block, renders `Joined {donor.createdAt}`
-  when `donor.donations` is empty **and** `donor.createdAt` is present.
-  Renders nothing (today's behavior, unchanged) when both are
-  absent/empty — covers donors approved before this field existed.
+  `donor.donations.map(...)` block, renders
+  `Joined {donor.createdAt.slice(0, 10)}` when `donor.donations` is
+  empty **and** `donor.createdAt` is present. Renders nothing (today's
+  behavior, unchanged) when both are absent/empty — covers donors
+  approved before this field existed.
 - `components/DonorDashboard.tsx`'s `CompletedEventsSection`: the
   existing `"No completed deliveries yet."` empty-state paragraph gets a
-  conditional `" Joined {donor.createdAt}."` suffix appended when
+  conditional `" Joined {donor.createdAt.slice(0, 10)}."` suffix appended
+  when
   `donor.createdAt` is present; unchanged when absent.
 
 ## Tests
