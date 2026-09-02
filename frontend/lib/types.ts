@@ -55,6 +55,13 @@ export type PartnerCharity = {
   createdAt?: string;
 };
 
+// Admin-only — never returned by the public GET /api/content that
+// PartnerCharity above serves. See
+// specs/features/031-charity-partner-contact-email/design.md.
+export type PartnerCharityAdminView = PartnerCharity & {
+  email?: string;
+};
+
 export type SiteConfig = {
   charityName: string;
   founderName: string;
