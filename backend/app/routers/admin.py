@@ -6,7 +6,7 @@ from app.models.domain import (
     CreatePartnerCharityRequest,
     DonationEvent,
     DonorAdminView,
-    PartnerCharity,
+    PartnerCharityAdminView,
     SignupAdminView,
     SubmissionAdminView,
     UpdatePartnerCharityRequest,
@@ -111,10 +111,10 @@ def reactivate_volunteer(
     get_store().set_volunteer_status(volunteer_id, "active")
 
 
-@router.get("/charities", response_model=list[PartnerCharity])
+@router.get("/charities", response_model=list[PartnerCharityAdminView])
 def list_all_partner_charities(
     session: Session = Depends(require_admin),
-) -> list[PartnerCharity]:
+) -> list[PartnerCharityAdminView]:
     """Every partner charity, any status — unlike GET /api/content, which
     only returns active ones. See
     specs/features/027-charity-partner-edit-and-deactivate/design.md."""
@@ -122,20 +122,22 @@ def list_all_partner_charities(
 
 
 @router.post(
-    "/charities", response_model=PartnerCharity, status_code=status.HTTP_201_CREATED
+    "/charities",
+    response_model=PartnerCharityAdminView,
+    status_code=status.HTTP_201_CREATED,
 )
 def create_partner_charity(
     body: CreatePartnerCharityRequest, session: Session = Depends(require_admin)
-) -> PartnerCharity:
+) -> PartnerCharityAdminView:
     return get_store().create_partner_charity(**body.model_dump())
 
 
-@router.patch("/charities/{charity_id}", response_model=PartnerCharity)
+@router.patch("/charities/{charity_id}", response_model=PartnerCharityAdminView)
 def update_partner_charity(
     charity_id: str,
     body: UpdatePartnerCharityRequest,
     session: Session = Depends(require_admin),
-) -> PartnerCharity:
+) -> PartnerCharityAdminView:
     try:
         return get_store().update_partner_charity(charity_id, **body.model_dump())
     except ValueError:

@@ -6,7 +6,7 @@ from app.models.domain import (
     DonationEvent,
     Donor,
     DonorAdminView,
-    PartnerCharity,
+    PartnerCharityAdminView,
     SignupRequest,
     Volunteer,
     VolunteerAdminView,
@@ -276,12 +276,15 @@ class Store(Protocol):
         website_url: str | None = None,
         donation_url: str | None = None,
         tax_refund_eligible: bool | None = None,
-    ) -> PartnerCharity:
+        email: str | None = None,
+    ) -> PartnerCharityAdminView:
         """Admin-only — see
-        specs/features/026-charity-partner-admin-and-homepage/design.md."""
+        specs/features/026-charity-partner-admin-and-homepage/design.md.
+        `email` is admin-only contact info, never public — see
+        specs/features/031-charity-partner-contact-email/design.md."""
         ...
 
-    def list_all_partner_charities(self) -> list[PartnerCharity]:
+    def list_all_partner_charities(self) -> list[PartnerCharityAdminView]:
         """Every partner charity, any status — admin directory (unlike
         get_content(), which only returns active ones). See
         specs/features/027-charity-partner-edit-and-deactivate/design.md."""
@@ -300,7 +303,8 @@ class Store(Protocol):
         website_url: str | None,
         donation_url: str | None,
         tax_refund_eligible: bool | None,
-    ) -> PartnerCharity:
+        email: str | None = None,
+    ) -> PartnerCharityAdminView:
         """Full replace of these fields, same "not a patch-in" convention as
         update_donation_event. Raises ValueError if the charity doesn't
         exist."""

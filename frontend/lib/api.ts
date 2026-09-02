@@ -4,7 +4,7 @@ import type {
   DonationEvent,
   Donor,
   DonorAdminView,
-  PartnerCharity,
+  PartnerCharityAdminView,
   SignupAdminView,
   SignupPayload,
   SubmissionAdminView,
@@ -177,7 +177,7 @@ export const api = {
     request<DonationEvent[]>("/admin/donation-events?status=scheduled"),
 
   listAllPartnerCharities: () =>
-    request<PartnerCharity[]>("/admin/charities"),
+    request<PartnerCharityAdminView[]>("/admin/charities"),
   createPartnerCharity: (payload: {
     name: string;
     location: string;
@@ -189,8 +189,9 @@ export const api = {
     website_url?: string;
     donation_url?: string;
     tax_refund_eligible?: boolean;
+    email: string;
   }) =>
-    request<PartnerCharity>("/admin/charities", {
+    request<PartnerCharityAdminView>("/admin/charities", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
@@ -207,9 +208,10 @@ export const api = {
       website_url?: string;
       donation_url?: string;
       tax_refund_eligible?: boolean;
+      email: string;
     },
   ) =>
-    request<PartnerCharity>(`/admin/charities/${id}`, {
+    request<PartnerCharityAdminView>(`/admin/charities/${id}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
