@@ -24,6 +24,8 @@ export type Donor = {
   totalMeals: number;
   donationCount: number;
   donations?: Donation[];
+  // Absent for donors approved before this field existed.
+  createdAt?: string;
   // Only ever present on GET /api/donors/me — the public Donor model
   // (also used by GET /api/donors/{id}) never carries this. See
   // specs/features/015-local-dev-generated-credentials/design.md.
