@@ -54,7 +54,7 @@ export function FeaturedDonors({ donors, onSelectDonor }: FeaturedDonorsProps) {
                 </div>
                 {donor.donationCount === 0 && donor.createdAt ? (
                   <p className="m-0 text-[13px] font-bold text-muted-2">
-                    Joined {donor.createdAt}
+                    Joined {donor.createdAt.slice(0, 10)}
                   </p>
                 ) : (
                   <div className="flex items-baseline gap-2">

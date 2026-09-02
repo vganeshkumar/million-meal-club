@@ -684,7 +684,7 @@ function CompletedEventsSection({ donor }: { donor: Donor }) {
       {(donor.donations?.length ?? 0) === 0 && (
         <p className="text-sm text-muted">
           No completed deliveries yet.
-          {donor.createdAt && ` Joined ${donor.createdAt}.`}
+          {donor.createdAt && ` Joined ${donor.createdAt.slice(0, 10)}.`}
         </p>
       )}
       <div className="flex flex-col gap-3">
