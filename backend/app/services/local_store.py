@@ -254,6 +254,7 @@ class LocalStore:
             story=d["story"],
             total_meals=total,
             donation_count=len(donations),
+            created_at=d.get("created_at"),
             donations=[
                 Donation(
                     id=x["id"],
@@ -469,6 +470,7 @@ class LocalStore:
                 "email": email,
                 "local_username": local_username,
                 "status": "active",
+                "created_at": _now(),
             }
             self._donations[donor_id] = []
         else:

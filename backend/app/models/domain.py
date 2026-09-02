@@ -43,6 +43,10 @@ class Donor(CamelModel):
     total_meals: int
     donation_count: int
     donations: list[Donation] | None = None
+    # When this donor was approved — absent for donors approved before this
+    # field existed. Lets the frontend show "Joined <date>" in place of a
+    # delivery list for a donor with no donations yet.
+    created_at: str | None = None
 
 
 class DonorMe(Donor):

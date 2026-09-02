@@ -85,6 +85,9 @@ export function DonorDetail({ donor, loading }: DonorDetailProps) {
         <h2 className="mt-0 mb-5 font-display text-xl font-bold">
           Their Deliveries
         </h2>
+        {(donor.donations ?? []).length === 0 && donor.createdAt && (
+          <p className="m-0 text-sm text-muted">Joined {donor.createdAt}</p>
+        )}
         <div className="flex flex-col gap-6">
           {(donor.donations ?? []).map((d) => (
             <div
