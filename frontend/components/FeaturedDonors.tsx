@@ -52,17 +52,23 @@ export function FeaturedDonors({ donors, onSelectDonor }: FeaturedDonorsProps) {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-baseline gap-2">
-                  <span
-                    style={{ color: "var(--accent-green)" }}
-                    className="font-display text-[34px] font-extrabold"
-                  >
-                    {donor.totalMeals.toLocaleString()}
-                  </span>
-                  <span className="text-[12.5px] font-bold tracking-[0.04em] text-muted-2 uppercase">
-                    meals delivered
-                  </span>
-                </div>
+                {donor.donationCount === 0 && donor.createdAt ? (
+                  <p className="m-0 text-[13px] font-bold text-muted-2">
+                    Joined {donor.createdAt}
+                  </p>
+                ) : (
+                  <div className="flex items-baseline gap-2">
+                    <span
+                      style={{ color: "var(--accent-green)" }}
+                      className="font-display text-[34px] font-extrabold"
+                    >
+                      {donor.totalMeals.toLocaleString()}
+                    </span>
+                    <span className="text-[12.5px] font-bold tracking-[0.04em] text-muted-2 uppercase">
+                      meals delivered
+                    </span>
+                  </div>
+                )}
               </button>
             );
           })}

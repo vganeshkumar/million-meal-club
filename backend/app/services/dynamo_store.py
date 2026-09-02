@@ -103,6 +103,7 @@ class DynamoStore:
                     story=d.get("story", ""),
                     total_meals=int(d.get("total_meals", 0)),
                     donation_count=int(d.get("donation_count", 0)),
+                    created_at=d.get("created_at"),
                 )
                 for d in donors
             ],
