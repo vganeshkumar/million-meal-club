@@ -233,6 +233,7 @@ export type SubmissionAdminView = {
   caption?: string;
   status: "pending" | "approved" | "rejected";
   created_at: string;
+  facebook_post_id?: string | null;
 };
 
 export type MembershipStatus = "active" | "disabled";
