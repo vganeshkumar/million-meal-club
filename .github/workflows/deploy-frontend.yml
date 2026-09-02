@@ -6,9 +6,14 @@
 #   vars.SITE_BUCKET_NAME           — from `terraform output` in infra/envs/<env>
 #   vars.CLOUDFRONT_DISTRIBUTION_ID — from `terraform output` in infra/envs/<env>
 #   vars.API_BASE_URL               — e.g. https://<distribution-domain>/api
+#   vars.GOOGLE_CLIENT_ID           — same value as infra's google_client_id tfvar
+#   vars.GEOAPIFY_API_KEY           — same value as infra's geoapify_api_key tfvar
 #
 # Until those are set, this workflow will fail at the "configure AWS
 # credentials" step — that's expected until infra has been applied once.
+# GOOGLE_CLIENT_ID/GEOAPIFY_API_KEY are optional: leaving them unset just
+# keeps the sign-in button and map previews in their "not configured"
+# fallback state (see frontend/lib/auth.ts, frontend/lib/staticMap.ts).
 
 name: Deploy Frontend
 
@@ -44,6 +49,8 @@ jobs:
       - run: npm run build
         env:
           NEXT_PUBLIC_API_BASE_URL: ${{ vars.API_BASE_URL }}
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
+          NEXT_PUBLIC_GEOAPIFY_API_KEY: ${{ vars.GEOAPIFY_API_KEY }}
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
