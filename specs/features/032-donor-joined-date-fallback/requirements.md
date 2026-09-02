@@ -2,16 +2,23 @@
 
 ## Why
 Requested by the user (2026-09-02): a newly approved donor who hasn't
-logged a delivery yet showed either a blank area (public donor detail
-page) or a bare "No completed deliveries yet." message (donor dashboard)
-where their delivery history would go. Showing when they joined instead
-gives that space real content.
+logged a delivery yet showed a "0 meals delivered" stat on their
+homepage "Featured Donors" card — the first place anyone actually sees a
+new donor. Showing when they joined instead gives that space real
+content. (An initial pass only fixed the donor detail page and dashboard,
+missing the homepage card — the request came back a second time
+specifically calling that out; this spec now covers all three.)
 
 ## Requirements
 - A donor's approval date is recorded when their signup is approved (not
   backfilled for existing donors — same "optional in DB" precedent as
   [[031-charity-partner-contact-email]]).
-- The public donor detail page (`#donors/{id}`, `DonorDetail.tsx`): when a
+- The homepage "Featured Donors" card (`FeaturedDonors.tsx`, fed by
+  `GET /api/content`): when a donor has zero donations, show "Joined
+  `<date>`" in place of the "`<N>` meals delivered" stat. Unchanged
+  (shows the meals-delivered stat, even at 0) for a donor with no join
+  date on record.
+- The public donor detail page (`#donor-<id>`, `DonorDetail.tsx`): when a
   donor has zero donations, show "Joined `<date>`" where the delivery
   list would otherwise render nothing at all. Renders nothing (unchanged
   behavior) for a donor approved before this field existed, who has no
@@ -21,7 +28,8 @@ gives that space real content.
   the existing "No completed deliveries yet." message rather than
   replacing it — that message is still true and useful.
 - Once a donor logs their first donation, this fallback stops
-  appearing — the actual delivery list takes over, unchanged from today.
+  appearing everywhere — the actual stats/delivery list take over,
+  unchanged from today.
 
 ## Out of scope
 - Backfilling a join date for donors approved before this change.

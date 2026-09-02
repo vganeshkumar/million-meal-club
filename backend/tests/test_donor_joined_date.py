@@ -1,7 +1,8 @@
 """Covers specs/features/032-donor-joined-date-fallback — a donor's
-approval date is recorded and returned by both GET /api/donors/{id} and
-GET /api/donors/me, so the frontend can show "Joined <date>" in place of
-an empty delivery list."""
+approval date is recorded and returned by GET /api/donors/{id},
+GET /api/donors/me, and GET /api/content (the homepage's data source), so
+the frontend can show "Joined <date>" in place of an empty delivery list
+or a 0-meals homepage card."""
 
 from tests.conftest import sign_in_as
 
@@ -44,6 +45,21 @@ def test_approving_a_donor_sets_created_at(client):
     body = resp.json()
     assert body["createdAt"] is not None
     assert body["donations"] in (None, [])
+
+
+def test_public_content_includes_created_at_for_homepage_cards(client):
+    """GET /api/content is what FeaturedDonors.tsx (the homepage's donor
+    cards) actually consumes — a separate code path from GET
+    /api/donors/{id}, and the one that was missed initially."""
+    name = "Homepage Card Donor"
+    email = "joined-date-homepage-donor@example.com"
+    _approve_donor(client, email, name)
+
+    resp = client.get("/api/content")
+    assert resp.status_code == 200
+    donor = next(d for d in resp.json()["donors"] if d["name"] == name)
+    assert donor["createdAt"] is not None
+    assert donor["donationCount"] == 0
 
 
 def test_donor_me_also_returns_created_at(client):

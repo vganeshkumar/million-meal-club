@@ -194,6 +194,7 @@ class LocalStore:
                     story=d["story"],
                     total_meals=d["total_meals"],
                     donation_count=d["donation_count"],
+                    created_at=d.get("created_at"),
                 )
                 for d in donors
             ],

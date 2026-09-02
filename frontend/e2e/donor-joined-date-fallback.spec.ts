@@ -3,10 +3,11 @@ import { test, expect, type Page } from "@playwright/test";
 /**
  * End-to-end coverage for
  * specs/features/032-donor-joined-date-fallback — a freshly approved
- * donor with no donations yet shows "Joined <date>" on their public
- * detail page (where the delivery list would otherwise render nothing),
- * and on their own dashboard (appended to the existing "No completed
- * deliveries yet." message).
+ * donor with no donations yet shows "Joined <date>" in place of the
+ * usual stats: on their homepage "Featured Donors" card (instead of "0
+ * meals delivered"), on their public detail page (where the delivery
+ * list would otherwise render nothing), and on their own dashboard
+ * (appended to the existing "No completed deliveries yet." message).
  */
 
 const BACKEND = "http://localhost:8001";
@@ -62,6 +63,14 @@ test("a donor with no donations shows a joined date, on both their detail page a
   ).find((d) => d.email === email);
   expect(donorRow).toBeDefined();
   const donorId = donorRow!.donor_id;
+
+  // Homepage "Featured Donors" card: 0 meals delivered, so the joined
+  // line takes its place instead of the usual meals-delivered stat.
+  await page.goto("/");
+  const homepageCard = page.locator("button").filter({ hasText: name });
+  await expect(homepageCard).toBeVisible();
+  await expect(homepageCard.getByText(/^Joined /)).toBeVisible();
+  await expect(homepageCard).not.toContainText("meals delivered");
 
   // Public detail page: the delivery list is empty, so the joined line
   // takes its place.
