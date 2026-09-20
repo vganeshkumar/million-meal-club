@@ -16,6 +16,7 @@ from app.models.domain import (
     DonorAdminView,
     EventItem,
     PartnerCharity,
+    PartnerCharityAdminView,
     SignupRequest,
     SiteConfig,
     Volunteer,
@@ -193,6 +194,7 @@ class LocalStore:
                     story=d["story"],
                     total_meals=d["total_meals"],
                     donation_count=d["donation_count"],
+                    created_at=d.get("created_at"),
                 )
                 for d in donors
             ],
@@ -253,6 +255,7 @@ class LocalStore:
             story=d["story"],
             total_meals=total,
             donation_count=len(donations),
+            created_at=d.get("created_at"),
             donations=[
                 Donation(
                     id=x["id"],
@@ -468,6 +471,7 @@ class LocalStore:
                 "email": email,
                 "local_username": local_username,
                 "status": "active",
+                "created_at": _now(),
             }
             self._donations[donor_id] = []
         else:
@@ -779,6 +783,11 @@ class LocalStore:
         )
         self._config["total_meals"] += s["meals"]
         s["status"] = "approved"
+        # Public (CloudFront) URL of the approved cover photo, distinct from
+        # list_submissions()'s transient presigned cover_photo_url — this is
+        # what Facebook's servers can actually fetch. See
+        # specs/features/033-facebook-event-posting/design.md.
+        s["public_cover_photo_url"] = blob.public_url(approved_cover_key)
         donation_event_id = s.get("donation_event_id")
         if donation_event_id:
             event = self._donation_events.get(donation_event_id)
@@ -787,6 +796,16 @@ class LocalStore:
                 event["photo_urls"] = [blob.public_url(k) for k in approved_keys]
                 event["cover_photo_url"] = blob.public_url(approved_cover_key)
                 event["caption"] = s.get("caption") or None
+
+    def get_submission(self, submission_id: str) -> dict | None:
+        return self._submissions.get(submission_id)
+
+    def mark_submission_posted_to_facebook(
+        self, submission_id: str, post_id: str
+    ) -> None:
+        s = self._submissions.get(submission_id)
+        if s is not None:
+            s["facebook_post_id"] = post_id
 
     def reject_submission(self, submission_id: str) -> None:
         s = self._submissions.get(submission_id)
@@ -816,7 +835,8 @@ class LocalStore:
         website_url: str | None = None,
         donation_url: str | None = None,
         tax_refund_eligible: bool | None = None,
-    ) -> PartnerCharity:
+        email: str | None = None,
+    ) -> PartnerCharityAdminView:
         charity = {
             "id": f"charity-{uuid.uuid4().hex}",
             "name": name,
@@ -829,14 +849,15 @@ class LocalStore:
             "website_url": website_url,
             "donation_url": donation_url,
             "tax_refund_eligible": tax_refund_eligible,
+            "email": email,
             "status": "active",
             "created_at": _now(),
         }
         self._partner_charities.append(charity)
-        return PartnerCharity(**charity)
+        return PartnerCharityAdminView(**charity)
 
-    def list_all_partner_charities(self) -> list[PartnerCharity]:
-        return [PartnerCharity(**c) for c in self._partner_charities]
+    def list_all_partner_charities(self) -> list[PartnerCharityAdminView]:
+        return [PartnerCharityAdminView(**c) for c in self._partner_charities]
 
     def _find_partner_charity(self, charity_id: str) -> dict:
         for c in self._partner_charities:
@@ -857,7 +878,8 @@ class LocalStore:
         website_url: str | None,
         donation_url: str | None,
         tax_refund_eligible: bool | None,
-    ) -> PartnerCharity:
+        email: str | None = None,
+    ) -> PartnerCharityAdminView:
         charity = self._find_partner_charity(charity_id)
         charity["name"] = name
         charity["location"] = location
@@ -869,7 +891,8 @@ class LocalStore:
         charity["website_url"] = website_url
         charity["donation_url"] = donation_url
         charity["tax_refund_eligible"] = tax_refund_eligible
-        return PartnerCharity(**charity)
+        charity["email"] = email
+        return PartnerCharityAdminView(**charity)
 
     def set_partner_charity_status(self, charity_id: str, status: str) -> None:
         self._find_partner_charity(charity_id)["status"] = status

@@ -43,6 +43,10 @@ class Donor(CamelModel):
     total_meals: int
     donation_count: int
     donations: list[Donation] | None = None
+    # When this donor was approved — absent for donors approved before this
+    # field existed. Lets the frontend show "Joined <date>" in place of a
+    # delivery list for a donor with no donations yet.
+    created_at: str | None = None
 
 
 class DonorMe(Donor):
@@ -81,6 +85,33 @@ class PartnerCharity(CamelModel):
     website_url: str | None = None
     donation_url: str | None = None
     tax_refund_eligible: bool | None = None
+    status: MembershipStatus = "active"
+    created_at: str | None = None
+
+
+class PartnerCharityAdminView(CamelModel):
+    """Admin-only view of a partner charity — see
+    specs/features/031-charity-partner-contact-email/design.md. A
+    genuinely separate class from the public PartnerCharity (not a
+    subclass), same discipline as DonorAdminView/VolunteerAdminView being
+    distinct from the public Donor/Volunteer, so there's no code path
+    where GET /api/content could ever return `email`. Stays a CamelModel
+    (unlike DonorAdminView/VolunteerAdminView's plain snake_case
+    BaseModel) since AdminPartnerCharities.tsx already consumes every
+    other charity field as camelCase."""
+
+    id: str
+    name: str
+    location: str
+    description: str
+    core_services: str | None = None
+    founder_details: str | None = None
+    years_active: str | None = None
+    awards_credentials: str | None = None
+    website_url: str | None = None
+    donation_url: str | None = None
+    tax_refund_eligible: bool | None = None
+    email: str | None = None
     status: MembershipStatus = "active"
     created_at: str | None = None
 
@@ -215,6 +246,7 @@ class CreatePartnerCharityRequest(BaseModel):
     website_url: str | None = None
     donation_url: str | None = None
     tax_refund_eligible: bool | None = None
+    email: str | None = None
 
 
 class UpdatePartnerCharityRequest(BaseModel):
@@ -228,6 +260,7 @@ class UpdatePartnerCharityRequest(BaseModel):
     website_url: str | None = None
     donation_url: str | None = None
     tax_refund_eligible: bool | None = None
+    email: str | None = None
 
 
 class UpdateDonationEventRequest(BaseModel):
@@ -437,6 +470,7 @@ class SubmissionAdminView(BaseModel):
     donation_event_id: str | None = None
     status: Literal["pending", "approved", "rejected"]
     created_at: str
+    facebook_post_id: str | None = None
 
 
 class UpdateDonorProfileRequest(BaseModel):

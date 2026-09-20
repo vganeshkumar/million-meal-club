@@ -6,7 +6,7 @@ from app.models.domain import (
     DonationEvent,
     Donor,
     DonorAdminView,
-    PartnerCharity,
+    PartnerCharityAdminView,
     SignupRequest,
     Volunteer,
     VolunteerAdminView,
@@ -253,7 +253,19 @@ class Store(Protocol):
 
     def list_submissions(self, status: str) -> list[dict]: ...
 
+    def get_submission(self, submission_id: str) -> dict | None: ...
+
     def approve_submission(self, submission_id: str) -> None: ...
+
+    def mark_submission_posted_to_facebook(
+        self, submission_id: str, post_id: str
+    ) -> None:
+        """Persists the Facebook post id returned after a manual "Post to
+        Facebook" admin action — see
+        specs/features/033-facebook-event-posting/design.md. No-ops if the
+        submission doesn't exist, same defensive style as
+        approve_submission."""
+        ...
 
     def reject_submission(self, submission_id: str) -> None:
         """If this submission referenced a DonationEvent, reopens it back
@@ -276,12 +288,15 @@ class Store(Protocol):
         website_url: str | None = None,
         donation_url: str | None = None,
         tax_refund_eligible: bool | None = None,
-    ) -> PartnerCharity:
+        email: str | None = None,
+    ) -> PartnerCharityAdminView:
         """Admin-only — see
-        specs/features/026-charity-partner-admin-and-homepage/design.md."""
+        specs/features/026-charity-partner-admin-and-homepage/design.md.
+        `email` is admin-only contact info, never public — see
+        specs/features/031-charity-partner-contact-email/design.md."""
         ...
 
-    def list_all_partner_charities(self) -> list[PartnerCharity]:
+    def list_all_partner_charities(self) -> list[PartnerCharityAdminView]:
         """Every partner charity, any status — admin directory (unlike
         get_content(), which only returns active ones). See
         specs/features/027-charity-partner-edit-and-deactivate/design.md."""
@@ -300,7 +315,8 @@ class Store(Protocol):
         website_url: str | None,
         donation_url: str | None,
         tax_refund_eligible: bool | None,
-    ) -> PartnerCharity:
+        email: str | None = None,
+    ) -> PartnerCharityAdminView:
         """Full replace of these fields, same "not a patch-in" convention as
         update_donation_event. Raises ValueError if the charity doesn't
         exist."""

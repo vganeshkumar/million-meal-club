@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { oauthConfigured } from "@/lib/auth";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import type { AuthUser, SignupAdminView, SubmissionAdminView } from "@/lib/types";
@@ -297,6 +297,10 @@ function PendingSubmissions() {
     SubmissionAdminView[] | null
   >(null);
   const [error, setError] = useState("");
+  const [facebookErrors, setFacebookErrors] = useState<
+    Record<string, string>
+  >({});
+  const [postingIds, setPostingIds] = useState<Set<string>>(new Set());
 
   function refresh() {
     api
@@ -310,7 +314,10 @@ function PendingSubmissions() {
   async function handleApprove(id: string) {
     await api.approveSubmission(id);
     setSubmissions(
-      (prev) => prev?.filter((s) => s.submission_id !== id) ?? null,
+      (prev) =>
+        prev?.map((s) =>
+          s.submission_id === id ? { ...s, status: "approved" } : s,
+        ) ?? null,
     );
   }
 
@@ -319,6 +326,40 @@ function PendingSubmissions() {
     setSubmissions(
       (prev) => prev?.filter((s) => s.submission_id !== id) ?? null,
     );
+  }
+
+  function handleDismiss(id: string) {
+    setSubmissions(
+      (prev) => prev?.filter((s) => s.submission_id !== id) ?? null,
+    );
+  }
+
+  async function handlePostToFacebook(id: string) {
+    setFacebookErrors((prev) => ({ ...prev, [id]: "" }));
+    setPostingIds((prev) => new Set(prev).add(id));
+    try {
+      const { facebook_post_id } = await api.postSubmissionToFacebook(id);
+      setSubmissions(
+        (prev) =>
+          prev?.map((s) =>
+            s.submission_id === id ? { ...s, facebook_post_id } : s,
+          ) ?? null,
+      );
+    } catch (err) {
+      const message =
+        err instanceof ApiError && err.status === 400
+          ? "Facebook posting isn't configured yet."
+          : err instanceof ApiError && err.status === 409
+            ? "This submission was already posted to Facebook."
+            : "Couldn't post to Facebook. Please try again.";
+      setFacebookErrors((prev) => ({ ...prev, [id]: message }));
+    } finally {
+      setPostingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
   }
 
   return (
@@ -384,22 +425,65 @@ function PendingSubmissions() {
                 {s.caption}
               </p>
             )}
-            <div className="flex gap-2.5">
-              <button
-                type="button"
-                onClick={() => handleApprove(s.submission_id)}
-                className="cursor-pointer rounded-full border-none bg-[var(--accent-green)] px-5 py-2.5 text-sm font-bold text-ink-fg"
-              >
-                Approve
-              </button>
-              <button
-                type="button"
-                onClick={() => handleReject(s.submission_id)}
-                className="cursor-pointer rounded-full border border-border-strong bg-transparent px-5 py-2.5 text-sm font-bold text-ink"
-              >
-                Reject
-              </button>
-            </div>
+            {facebookErrors[s.submission_id] && (
+              <p className="m-0 mb-3 text-sm text-red-700">
+                {facebookErrors[s.submission_id]}
+              </p>
+            )}
+            {s.status === "pending" ? (
+              <div className="flex gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => handleApprove(s.submission_id)}
+                  className="cursor-pointer rounded-full border-none bg-[var(--accent-green)] px-5 py-2.5 text-sm font-bold text-ink-fg"
+                >
+                  Approve
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleReject(s.submission_id)}
+                  className="cursor-pointer rounded-full border border-border-strong bg-transparent px-5 py-2.5 text-sm font-bold text-ink"
+                >
+                  Reject
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2.5">
+                {s.facebook_post_id ? (
+                  <>
+                    <span className="rounded-full border border-border-strong px-5 py-2.5 text-sm font-bold text-muted-2">
+                      Posted to Facebook ✓
+                    </span>
+                    <a
+                      href={`https://www.facebook.com/${s.facebook_post_id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm font-bold text-ink underline"
+                    >
+                      View post
+                    </a>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={postingIds.has(s.submission_id)}
+                    onClick={() => handlePostToFacebook(s.submission_id)}
+                    className="cursor-pointer rounded-full border-none bg-[var(--accent-green)] px-5 py-2.5 text-sm font-bold text-ink-fg disabled:cursor-default disabled:opacity-60"
+                  >
+                    {postingIds.has(s.submission_id)
+                      ? "Posting…"
+                      : "Post to Facebook"}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleDismiss(s.submission_id)}
+                  className="cursor-pointer rounded-full border border-border-strong bg-transparent px-5 py-2.5 text-sm font-bold text-ink"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>

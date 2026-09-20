@@ -24,6 +24,8 @@ export type Donor = {
   totalMeals: number;
   donationCount: number;
   donations?: Donation[];
+  // Absent for donors approved before this field existed.
+  createdAt?: string;
   // Only ever present on GET /api/donors/me — the public Donor model
   // (also used by GET /api/donors/{id}) never carries this. See
   // specs/features/015-local-dev-generated-credentials/design.md.
@@ -53,6 +55,13 @@ export type PartnerCharity = {
   taxRefundEligible?: boolean;
   status: MembershipStatus;
   createdAt?: string;
+};
+
+// Admin-only — never returned by the public GET /api/content that
+// PartnerCharity above serves. See
+// specs/features/031-charity-partner-contact-email/design.md.
+export type PartnerCharityAdminView = PartnerCharity & {
+  email?: string;
 };
 
 export type SiteConfig = {
@@ -224,6 +233,7 @@ export type SubmissionAdminView = {
   caption?: string;
   status: "pending" | "approved" | "rejected";
   created_at: string;
+  facebook_post_id?: string | null;
 };
 
 export type MembershipStatus = "active" | "disabled";

@@ -31,7 +31,7 @@ const FAQS = [
   },
   {
     q: "How do I become a donor?",
-    a: "Donor spots are by invitation only. Submit a donor application — including your story and a commitment to deliver at least 50,000 meals within 4 years — and I'll personally follow up if it's a fit. Every donor agrees to have their story published here to inspire the next one.",
+    a: "Donor spots are by invitation only. Submit a donor application — including your story and a commitment to deliver at least 10,000 meals within 5 years — and I'll personally follow up if it's a fit. Every donor agrees to have their story published here to inspire the next one.",
   },
   {
     q: "What if I don't know which location to support?",

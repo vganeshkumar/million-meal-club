@@ -59,12 +59,12 @@ export function DonorDetail({ donor, loading }: DonorDetailProps) {
         <div>
           {/* Every donor commits to the same amount — this is static copy,
               not a per-donor value, matching the design's literal
-              "50,000 / 4 yrs" (no interpolation). */}
+              "10,000 / 5 yrs" (no interpolation). */}
           <div
             style={{ color: "var(--accent-green)" }}
             className="font-display text-4xl font-extrabold"
           >
-            50,000 / 4 yrs
+            10,000 / 5 yrs
           </div>
           <div className="text-[12.5px] font-bold tracking-[0.04em] text-muted-2 uppercase">
             committed meals
@@ -85,6 +85,11 @@ export function DonorDetail({ donor, loading }: DonorDetailProps) {
         <h2 className="mt-0 mb-5 font-display text-xl font-bold">
           Their Deliveries
         </h2>
+        {(donor.donations ?? []).length === 0 && donor.createdAt && (
+          <p className="m-0 text-sm text-muted">
+            Joined {donor.createdAt.slice(0, 10)}
+          </p>
+        )}
         <div className="flex flex-col gap-6">
           {(donor.donations ?? []).map((d) => (
             <div

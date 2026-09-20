@@ -73,6 +73,19 @@ variable "geoapify_api_key" {
   sensitive   = true
 }
 
+variable "facebook_page_id" {
+  type        = string
+  description = "Million Meal Club Facebook Page id to post completed-event photos to. Empty disables Facebook posting (admin sees a clear 'not configured' error instead of a silent no-op)."
+  default     = ""
+}
+
+variable "facebook_page_access_token" {
+  type        = string
+  description = "Long-lived Facebook Page access token (pages_manage_posts, pages_read_engagement). Not provisioned yet — same situation as Google OAuth credentials. Pass via a gitignored *.auto.tfvars file, never commit it."
+  default     = ""
+  sensitive   = true
+}
+
 variable "tags" {
   type    = map(string)
   default = {}

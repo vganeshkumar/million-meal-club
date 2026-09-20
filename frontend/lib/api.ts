@@ -4,7 +4,7 @@ import type {
   DonationEvent,
   Donor,
   DonorAdminView,
-  PartnerCharity,
+  PartnerCharityAdminView,
   SignupAdminView,
   SignupPayload,
   SubmissionAdminView,
@@ -79,6 +79,11 @@ export const api = {
     request<void>(`/admin/submissions/${id}/approve`, { method: "POST" }),
   rejectSubmission: (id: string) =>
     request<void>(`/admin/submissions/${id}/reject`, { method: "POST" }),
+  postSubmissionToFacebook: (id: string) =>
+    request<{ facebook_post_id: string }>(
+      `/admin/submissions/${id}/post-to-facebook`,
+      { method: "POST" },
+    ),
 
   presignUpload: (payload: { content_type: string; size: number }) =>
     request<{ upload_url: string; key: string }>("/uploads/presign", {
@@ -177,7 +182,7 @@ export const api = {
     request<DonationEvent[]>("/admin/donation-events?status=scheduled"),
 
   listAllPartnerCharities: () =>
-    request<PartnerCharity[]>("/admin/charities"),
+    request<PartnerCharityAdminView[]>("/admin/charities"),
   createPartnerCharity: (payload: {
     name: string;
     location: string;
@@ -189,8 +194,9 @@ export const api = {
     website_url?: string;
     donation_url?: string;
     tax_refund_eligible?: boolean;
+    email: string;
   }) =>
-    request<PartnerCharity>("/admin/charities", {
+    request<PartnerCharityAdminView>("/admin/charities", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
@@ -207,9 +213,10 @@ export const api = {
       website_url?: string;
       donation_url?: string;
       tax_refund_eligible?: boolean;
+      email: string;
     },
   ) =>
-    request<PartnerCharity>(`/admin/charities/${id}`, {
+    request<PartnerCharityAdminView>(`/admin/charities/${id}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
