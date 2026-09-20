@@ -26,7 +26,7 @@ variable "photos_bucket_arn" {
 
 variable "photos_public_base_url" {
   type        = string
-  description = "Public base URL for approved photos, e.g. https://<cloudfront-domain>/photos. Set after the static-site distribution exists."
+  description = "Prefix for approved-photo URLs. Empty (the default) is correct for the same-origin CloudFront setup — see modules/static-site's /approved/* cache behavior, which routes on the S3 key prefix as-is."
   default     = ""
 }
 
