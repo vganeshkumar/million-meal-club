@@ -253,7 +253,19 @@ class Store(Protocol):
 
     def list_submissions(self, status: str) -> list[dict]: ...
 
+    def get_submission(self, submission_id: str) -> dict | None: ...
+
     def approve_submission(self, submission_id: str) -> None: ...
+
+    def mark_submission_posted_to_facebook(
+        self, submission_id: str, post_id: str
+    ) -> None:
+        """Persists the Facebook post id returned after a manual "Post to
+        Facebook" admin action — see
+        specs/features/033-facebook-event-posting/design.md. No-ops if the
+        submission doesn't exist, same defensive style as
+        approve_submission."""
+        ...
 
     def reject_submission(self, submission_id: str) -> None:
         """If this submission referenced a DonationEvent, reopens it back

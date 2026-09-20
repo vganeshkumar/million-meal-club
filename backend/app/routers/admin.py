@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.deps import Session, require_admin
@@ -13,9 +15,20 @@ from app.models.domain import (
     VolunteerAdminView,
 )
 from app.services.email import get_email_sender
+from app.services.facebook import (
+    FacebookPostError,
+    get_facebook_poster,
+    is_facebook_configured,
+)
 from app.services.store import get_store
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+NOT_APPROVED_DETAIL = "Only approved submissions can be posted to Facebook."
+ALREADY_POSTED_DETAIL = "This submission was already posted to Facebook."
+FACEBOOK_NOT_CONFIGURED_DETAIL = "Facebook Page posting is not configured yet."
+
+SITE_BASE_URL = os.environ.get("SITE_BASE_URL", "http://localhost:3000")
 
 
 @router.get("/submissions", response_model=list[SubmissionAdminView])
@@ -42,6 +55,47 @@ def reject_submission(
     submission_id: str, session: Session = Depends(require_admin)
 ) -> None:
     get_store().reject_submission(submission_id)
+
+
+@router.post("/submissions/{submission_id}/post-to-facebook")
+def post_submission_to_facebook(
+    submission_id: str, session: Session = Depends(require_admin)
+) -> dict:
+    """Manual, admin-initiated action — never automatic on approval. See
+    specs/features/033-facebook-event-posting/design.md."""
+    s = get_store().get_submission(submission_id)
+    if not s:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found."
+        )
+    if s.get("status") != "approved":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=NOT_APPROVED_DETAIL
+        )
+    if s.get("facebook_post_id"):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=ALREADY_POSTED_DETAIL
+        )
+    if not is_facebook_configured():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=FACEBOOK_NOT_CONFIGURED_DETAIL,
+        )
+
+    message = (
+        s.get("caption") or f"{s['meals']} meals delivered to {s['location']}!"
+    ) + f"\n\n{SITE_BASE_URL}"
+    try:
+        post_id = get_facebook_poster().post_photo(
+            s["public_cover_photo_url"], message
+        )
+    except FacebookPostError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)
+        ) from exc
+
+    get_store().mark_submission_posted_to_facebook(submission_id, post_id)
+    return {"facebook_post_id": post_id}
 
 
 @router.get("/signups", response_model=list[SignupAdminView])

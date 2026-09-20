@@ -54,3 +54,16 @@ variable "geoapify_api_key" {
   sensitive   = true
   description = "Geoapify Static Maps API key (free tier). Empty omits the donation-event share page's og:image — see specs/features/023-event-location-time-and-sharing/design.md."
 }
+
+variable "facebook_page_id" {
+  type        = string
+  default     = ""
+  description = "Million Meal Club Facebook Page id to post completed-event photos to. Empty disables Facebook posting — see specs/features/033-facebook-event-posting/design.md."
+}
+
+variable "facebook_page_access_token" {
+  type        = string
+  default     = ""
+  sensitive   = true
+  description = "Long-lived Facebook Page access token (pages_manage_posts, pages_read_engagement). Not provisioned yet — same situation as Google OAuth credentials. Pass via a gitignored *.auto.tfvars file, never commit it."
+}

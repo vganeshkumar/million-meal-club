@@ -17,7 +17,14 @@ google_client_id = ""
 # specs/features/007-donor-application-approval/design.md.
 ses_from_email = ""
 
-# Put this in a separate gitignored *.auto.tfvars file instead (e.g.
-# secrets.auto.tfvars) rather than here, so it's never accidentally
+# Leave empty to disable posting completed donation events to Facebook —
+# admins see a clear "not configured" error instead of a silent no-op. See
+# specs/features/033-facebook-event-posting/design.md.
+facebook_page_id = ""
+
+# Put these in a separate gitignored *.auto.tfvars file instead (e.g.
+# secrets.auto.tfvars) rather than here, so they're never accidentally
 # committed alongside non-secret config:
 # session_secret = ""
+# geoapify_api_key = ""
+# facebook_page_access_token = ""

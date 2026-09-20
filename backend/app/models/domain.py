@@ -470,6 +470,7 @@ class SubmissionAdminView(BaseModel):
     donation_event_id: str | None = None
     status: Literal["pending", "approved", "rejected"]
     created_at: str
+    facebook_post_id: str | None = None
 
 
 class UpdateDonorProfileRequest(BaseModel):

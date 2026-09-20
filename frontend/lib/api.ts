@@ -79,6 +79,11 @@ export const api = {
     request<void>(`/admin/submissions/${id}/approve`, { method: "POST" }),
   rejectSubmission: (id: string) =>
     request<void>(`/admin/submissions/${id}/reject`, { method: "POST" }),
+  postSubmissionToFacebook: (id: string) =>
+    request<{ facebook_post_id: string }>(
+      `/admin/submissions/${id}/post-to-facebook`,
+      { method: "POST" },
+    ),
 
   presignUpload: (payload: { content_type: string; size: number }) =>
     request<{ upload_url: string; key: string }>("/uploads/presign", {

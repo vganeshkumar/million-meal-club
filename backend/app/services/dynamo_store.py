@@ -964,11 +964,18 @@ class DynamoStore:
             UpdateExpression="ADD total_meals :m",
             ExpressionAttributeValues={":m": s["meals"]},
         )
+        # Public (CloudFront) URL of the approved cover photo, distinct from
+        # list_submissions()'s transient presigned cover_photo_url — this is
+        # what Facebook's servers can actually fetch. See
+        # specs/features/033-facebook-event-posting/design.md.
         self._submissions.update_item(
             Key={"submission_id": submission_id},
-            UpdateExpression="SET #s = :approved",
+            UpdateExpression="SET #s = :approved, public_cover_photo_url = :url",
             ExpressionAttributeNames={"#s": "status"},
-            ExpressionAttributeValues={":approved": "approved"},
+            ExpressionAttributeValues={
+                ":approved": "approved",
+                ":url": blob.public_url(approved_cover_key),
+            },
         )
         donation_event_id = s.get("donation_event_id")
         if donation_event_id:
@@ -986,6 +993,19 @@ class DynamoStore:
                     ":caption": s.get("caption") or "",
                 },
             )
+
+    def get_submission(self, submission_id: str) -> dict | None:
+        resp = self._submissions.get_item(Key={"submission_id": submission_id})
+        return resp.get("Item")
+
+    def mark_submission_posted_to_facebook(
+        self, submission_id: str, post_id: str
+    ) -> None:
+        self._submissions.update_item(
+            Key={"submission_id": submission_id},
+            UpdateExpression="SET facebook_post_id = :id",
+            ExpressionAttributeValues={":id": post_id},
+        )
 
     def reject_submission(self, submission_id: str) -> None:
         resp = self._submissions.get_item(Key={"submission_id": submission_id})
