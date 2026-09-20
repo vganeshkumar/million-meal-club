@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
-import type { PartnerCharity } from "@/lib/types";
+import type { PartnerCharityAdminView } from "@/lib/types";
 import { StatusBadge, ToggleButton } from "@/components/AdminDirectory";
 
 const fieldClass =
@@ -20,6 +20,7 @@ type CharityFormFields = {
   website_url?: string;
   donation_url?: string;
   tax_refund_eligible?: boolean;
+  email: string;
 };
 
 function readForm(form: FormData): CharityFormFields {
@@ -40,10 +41,11 @@ function readForm(form: FormData): CharityFormFields {
         : taxRefundEligible === "no"
           ? false
           : undefined,
+    email: String(form.get("email") ?? ""),
   };
 }
 
-function CharityFields({ defaults }: { defaults?: PartnerCharity }) {
+function CharityFields({ defaults }: { defaults?: PartnerCharityAdminView }) {
   return (
     <>
       <label className={labelClass}>
@@ -63,6 +65,16 @@ function CharityFields({ defaults }: { defaults?: PartnerCharity }) {
           name="location"
           required
           defaultValue={defaults?.location}
+          className={fieldClass}
+        />
+      </label>
+      <label className={labelClass}>
+        Email
+        <input
+          type="email"
+          name="email"
+          required
+          defaultValue={defaults?.email}
           className={fieldClass}
         />
       </label>
@@ -164,7 +176,7 @@ function CharityFields({ defaults }: { defaults?: PartnerCharity }) {
 }
 
 export function AdminPartnerCharities() {
-  const [charities, setCharities] = useState<PartnerCharity[] | null>(null);
+  const [charities, setCharities] = useState<PartnerCharityAdminView[] | null>(null);
   const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -221,7 +233,7 @@ export function AdminPartnerCharities() {
     }
   }
 
-  async function handleToggle(charity: PartnerCharity) {
+  async function handleToggle(charity: PartnerCharityAdminView) {
     setTogglingId(charity.id);
     try {
       if (charity.status === "active") {
@@ -280,6 +292,7 @@ export function AdminPartnerCharities() {
           editingId === c.id ? (
             <form
               key={c.id}
+              data-testid="charity-edit-form"
               onSubmit={(e) => handleSaveEdit(c.id, e)}
               className="flex flex-col gap-4 rounded-[20px] border border-border bg-card p-6"
             >

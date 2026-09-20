@@ -16,6 +16,7 @@ from app.models.domain import (
     DonorAdminView,
     EventItem,
     PartnerCharity,
+    PartnerCharityAdminView,
     SignupRequest,
     SiteConfig,
     Volunteer,
@@ -193,6 +194,7 @@ class LocalStore:
                     story=d["story"],
                     total_meals=d["total_meals"],
                     donation_count=d["donation_count"],
+                    created_at=d.get("created_at"),
                 )
                 for d in donors
             ],
@@ -253,6 +255,7 @@ class LocalStore:
             story=d["story"],
             total_meals=total,
             donation_count=len(donations),
+            created_at=d.get("created_at"),
             donations=[
                 Donation(
                     id=x["id"],
@@ -468,6 +471,7 @@ class LocalStore:
                 "email": email,
                 "local_username": local_username,
                 "status": "active",
+                "created_at": _now(),
             }
             self._donations[donor_id] = []
         else:
@@ -816,7 +820,8 @@ class LocalStore:
         website_url: str | None = None,
         donation_url: str | None = None,
         tax_refund_eligible: bool | None = None,
-    ) -> PartnerCharity:
+        email: str | None = None,
+    ) -> PartnerCharityAdminView:
         charity = {
             "id": f"charity-{uuid.uuid4().hex}",
             "name": name,
@@ -829,14 +834,15 @@ class LocalStore:
             "website_url": website_url,
             "donation_url": donation_url,
             "tax_refund_eligible": tax_refund_eligible,
+            "email": email,
             "status": "active",
             "created_at": _now(),
         }
         self._partner_charities.append(charity)
-        return PartnerCharity(**charity)
+        return PartnerCharityAdminView(**charity)
 
-    def list_all_partner_charities(self) -> list[PartnerCharity]:
-        return [PartnerCharity(**c) for c in self._partner_charities]
+    def list_all_partner_charities(self) -> list[PartnerCharityAdminView]:
+        return [PartnerCharityAdminView(**c) for c in self._partner_charities]
 
     def _find_partner_charity(self, charity_id: str) -> dict:
         for c in self._partner_charities:
@@ -857,7 +863,8 @@ class LocalStore:
         website_url: str | None,
         donation_url: str | None,
         tax_refund_eligible: bool | None,
-    ) -> PartnerCharity:
+        email: str | None = None,
+    ) -> PartnerCharityAdminView:
         charity = self._find_partner_charity(charity_id)
         charity["name"] = name
         charity["location"] = location
@@ -869,7 +876,8 @@ class LocalStore:
         charity["website_url"] = website_url
         charity["donation_url"] = donation_url
         charity["tax_refund_eligible"] = tax_refund_eligible
-        return PartnerCharity(**charity)
+        charity["email"] = email
+        return PartnerCharityAdminView(**charity)
 
     def set_partner_charity_status(self, charity_id: str, status: str) -> None:
         self._find_partner_charity(charity_id)["status"] = status

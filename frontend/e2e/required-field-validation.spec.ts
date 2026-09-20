@@ -32,7 +32,7 @@ test.describe("Join In form — required-field gating", () => {
       .fill("Because it matters to my family.");
     await expect(submit).toBeDisabled();
 
-    await page.getByLabel(/I commit to delivering at least 50,000/).check();
+    await page.getByLabel(/I commit to delivering at least 10,000/).check();
     await expect(submit).toBeDisabled();
 
     await page
@@ -43,7 +43,7 @@ test.describe("Join In form — required-field gating", () => {
     // Unchecking a required checkbox after everything else is filled
     // must re-disable it — this exercises the form's onChange path, not
     // just the [mode, user] effect.
-    await page.getByLabel(/I commit to delivering at least 50,000/).uncheck();
+    await page.getByLabel(/I commit to delivering at least 10,000/).uncheck();
     await expect(submit).toBeDisabled();
   });
 
@@ -64,7 +64,7 @@ test.describe("Join In form — required-field gating", () => {
     await page
       .getByLabel(/Your Donor Story/)
       .fill("Because it matters to my family.");
-    await page.getByLabel(/I commit to delivering at least 50,000/).check();
+    await page.getByLabel(/I commit to delivering at least 10,000/).check();
     await page
       .getByLabel(/I agree to have my story, name, and photos published/)
       .check();

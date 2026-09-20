@@ -92,7 +92,7 @@ export function Progress({
           <p className="mt-5 text-[15px] text-ink-muted">
             And beyond that — our lifetime goal is{" "}
             <strong className="text-ink-fg">
-              {goal2030.toLocaleString()} meals by 2030
+              {goal2030.toLocaleString()} meals by 2035
             </strong>
             .
           </p>

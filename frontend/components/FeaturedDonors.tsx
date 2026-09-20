@@ -22,7 +22,7 @@ export function FeaturedDonors({ donors, onSelectDonor }: FeaturedDonorsProps) {
           </h2>
           <p className="m-0 text-base leading-[1.65] text-muted">
             Our donors join by invitation only, each committing to at least
-            50,000 meals over 4 years. Ranked by meals delivered — read
+            10,000 meals over 5 years. Ranked by meals delivered — read
             their stories and see what&apos;s driving them.
           </p>
         </div>
@@ -52,17 +52,23 @@ export function FeaturedDonors({ donors, onSelectDonor }: FeaturedDonorsProps) {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-baseline gap-2">
-                  <span
-                    style={{ color: "var(--accent-green)" }}
-                    className="font-display text-[34px] font-extrabold"
-                  >
-                    {donor.totalMeals.toLocaleString()}
-                  </span>
-                  <span className="text-[12.5px] font-bold tracking-[0.04em] text-muted-2 uppercase">
-                    meals delivered
-                  </span>
-                </div>
+                {donor.donationCount === 0 && donor.createdAt ? (
+                  <p className="m-0 text-[13px] font-bold text-muted-2">
+                    Joined {donor.createdAt.slice(0, 10)}
+                  </p>
+                ) : (
+                  <div className="flex items-baseline gap-2">
+                    <span
+                      style={{ color: "var(--accent-green)" }}
+                      className="font-display text-[34px] font-extrabold"
+                    >
+                      {donor.totalMeals.toLocaleString()}
+                    </span>
+                    <span className="text-[12.5px] font-bold tracking-[0.04em] text-muted-2 uppercase">
+                      meals delivered
+                    </span>
+                  </div>
+                )}
               </button>
             );
           })}

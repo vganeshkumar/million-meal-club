@@ -20,6 +20,7 @@ from app.models.domain import (
     DonorAdminView,
     EventItem,
     PartnerCharity,
+    PartnerCharityAdminView,
     SignupRequest,
     SiteConfig,
     Volunteer,
@@ -102,6 +103,7 @@ class DynamoStore:
                     story=d.get("story", ""),
                     total_meals=int(d.get("total_meals", 0)),
                     donation_count=int(d.get("donation_count", 0)),
+                    created_at=d.get("created_at"),
                 )
                 for d in donors
             ],
@@ -196,6 +198,7 @@ class DynamoStore:
             story=d.get("story", ""),
             total_meals=int(d.get("total_meals", 0)),
             donation_count=int(d.get("donation_count", 0)),
+            created_at=d.get("created_at"),
             donations=[
                 Donation(
                     id=x["donation_id"],
@@ -489,6 +492,7 @@ class DynamoStore:
                     "donation_count": 0,
                     "local_username": local_username,
                     "status": "active",
+                    "created_at": _now(),
                 }
             )
         else:
@@ -1028,7 +1032,8 @@ class DynamoStore:
         website_url: str | None = None,
         donation_url: str | None = None,
         tax_refund_eligible: bool | None = None,
-    ) -> PartnerCharity:
+        email: str | None = None,
+    ) -> PartnerCharityAdminView:
         charity_id = uuid.uuid4().hex
         created_at = _now()
         item = {
@@ -1053,8 +1058,10 @@ class DynamoStore:
             item["donation_url"] = donation_url
         if tax_refund_eligible is not None:
             item["tax_refund_eligible"] = tax_refund_eligible
+        if email:
+            item["email"] = email
         self._partner_charities.put_item(Item=item)
-        return PartnerCharity(
+        return PartnerCharityAdminView(
             id=charity_id,
             name=name,
             location=location,
@@ -1066,14 +1073,15 @@ class DynamoStore:
             website_url=website_url,
             donation_url=donation_url,
             tax_refund_eligible=tax_refund_eligible,
+            email=email,
             status="active",
             created_at=created_at,
         )
 
-    def list_all_partner_charities(self) -> list[PartnerCharity]:
+    def list_all_partner_charities(self) -> list[PartnerCharityAdminView]:
         resp = self._partner_charities.scan()
         return [
-            PartnerCharity(
+            PartnerCharityAdminView(
                 id=c["charity_id"],
                 name=c["name"],
                 location=c.get("location", ""),
@@ -1085,6 +1093,7 @@ class DynamoStore:
                 website_url=c.get("website_url"),
                 donation_url=c.get("donation_url"),
                 tax_refund_eligible=c.get("tax_refund_eligible"),
+                email=c.get("email"),
                 status=c.get("status", "active"),
                 created_at=c.get("created_at"),
             )
@@ -1104,7 +1113,8 @@ class DynamoStore:
         website_url: str | None,
         donation_url: str | None,
         tax_refund_eligible: bool | None,
-    ) -> PartnerCharity:
+        email: str | None = None,
+    ) -> PartnerCharityAdminView:
         resp = self._partner_charities.get_item(Key={"charity_id": charity_id})
         item = resp.get("Item")
         if item is None:
@@ -1121,6 +1131,7 @@ class DynamoStore:
                 "website_url": website_url,
                 "donation_url": donation_url,
                 "tax_refund_eligible": tax_refund_eligible,
+                "email": email,
             }
         )
         # Full replace via put_item, not update_item — mirrors the "not a
@@ -1129,7 +1140,7 @@ class DynamoStore:
         # (update_item's SET can't remove an attribute this way).
         item = {k: v for k, v in item.items() if v is not None}
         self._partner_charities.put_item(Item=item)
-        return PartnerCharity(
+        return PartnerCharityAdminView(
             id=charity_id,
             name=name,
             location=location,
@@ -1141,6 +1152,7 @@ class DynamoStore:
             website_url=website_url,
             donation_url=donation_url,
             tax_refund_eligible=tax_refund_eligible,
+            email=email,
             status=item.get("status", "active"),
             created_at=item.get("created_at"),
         )

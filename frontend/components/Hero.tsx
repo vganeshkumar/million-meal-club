@@ -29,7 +29,7 @@ export function Hero({ charityName, founderName }: HeroProps) {
           table. In this day and age, no one should starve for a meal.
         </p>
         <p className="mx-auto mb-9 max-w-[640px] text-[clamp(16px,1.6vw,19px)] leading-[1.65] text-muted">
-          {charityName} exists to give people that chance. Our mission is
+          {charityName}{" "}exists to give people that chance. Our mission is
           simple: reach as many people as we can and help each one move
           toward a better life. We&apos;re starting with meals — funded,
           packed, and hand-delivered entirely by volunteers, with no money
