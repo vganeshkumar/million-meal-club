@@ -17,7 +17,8 @@ def _approve_donor(client) -> None:
             "mode": "donor",
             "location": "Austin, TX",
             "country": "United States",
-            "packet_count": 100,
+            "kind": "Food Packets",
+            "quantity": 100,
             "delivery_role": "self",
             "donor_story": "Testing multi-photo proof.",
             "commit_50k_4yr": True,
@@ -54,7 +55,8 @@ def test_submission_with_multiple_photos_and_chosen_cover_round_trips(client):
         "/api/submissions",
         json={
             "location": "East Austin",
-            "meals": 120,
+            "kind": "Food Packets",
+            "quantity": 120,
             "photo_keys": keys,
             "cover_photo_key": keys[1],
         },
@@ -100,7 +102,8 @@ def test_scheduled_event_gets_photo_urls_and_cover_on_approval(client):
         "/api/submissions",
         json={
             "location": "East Austin",
-            "meals": 80,
+            "kind": "Food Packets",
+            "quantity": 80,
             "photo_keys": keys,
             "donation_event_id": event_id,
         },
@@ -125,7 +128,12 @@ def test_submission_rejects_zero_photos(client):
     _approve_donor(client)
     resp = client.post(
         "/api/submissions",
-        json={"location": "East Austin", "meals": 50, "photo_keys": []},
+        json={
+            "location": "East Austin",
+            "kind": "Food Packets",
+            "quantity": 50,
+            "photo_keys": [],
+        },
     )
     assert resp.status_code == 422
 
@@ -136,7 +144,8 @@ def test_submission_rejects_more_than_five_photos(client):
         "/api/submissions",
         json={
             "location": "East Austin",
-            "meals": 50,
+            "kind": "Food Packets",
+            "quantity": 50,
             "photo_keys": [f"pending/fake/{i}.jpg" for i in range(6)],
         },
     )
@@ -149,7 +158,8 @@ def test_submission_rejects_cover_not_in_photo_keys(client):
         "/api/submissions",
         json={
             "location": "East Austin",
-            "meals": 50,
+            "kind": "Food Packets",
+            "quantity": 50,
             "photo_keys": ["pending/fake/a.jpg", "pending/fake/b.jpg"],
             "cover_photo_key": "pending/fake/not-in-list.jpg",
         },

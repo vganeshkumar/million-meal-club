@@ -1,13 +1,13 @@
 const STEPS = [
   {
     n: "01",
-    title: "Pick Your Location & Packet Count",
-    body: "Tell us which neighborhood you'd like to feed and how many food packets you want to fund.",
+    title: "Pick Your Kind & Quantity",
+    body: "Tell us what kind of help you want to fund — meals, medicine, education, and more — and how many people it'll reach.",
   },
   {
     n: "02",
     title: "Choose Your Role",
-    body: "Deliver the meals yourself, request a volunteer to deliver on your behalf, or give through one of our partner charities instead.",
+    body: "Deliver it yourself, request a volunteer to deliver on your behalf, or give through one of our partner charities instead.",
   },
   {
     n: "03",

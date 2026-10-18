@@ -277,3 +277,20 @@ resource "aws_dynamodb_table" "config" {
 
   tags = var.tags
 }
+
+# Shared, ever-growing list of donation kinds ("Food Packets", "Medicine",
+# ...) donors/events/submissions can pick from or add to — tiny table, no
+# GSI needed. See
+# specs/features/034-donation-kinds-and-quantity/design.md.
+resource "aws_dynamodb_table" "donation_kinds" {
+  name         = "${local.name_prefix}-donation-kinds"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "kind"
+
+  attribute {
+    name = "kind"
+    type = "S"
+  }
+
+  tags = var.tags
+}

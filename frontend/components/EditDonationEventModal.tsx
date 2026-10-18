@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { AddressMapPreview } from "@/components/AddressMapPreview";
+import { KindAndQuantityFields } from "@/components/KindAndQuantityFields";
 import type { DonationEvent, PartnerCharity, VolunteerSummary } from "@/lib/types";
 
 const fieldClass =
@@ -13,6 +14,7 @@ export function EditDonationEventModal({
   event,
   partnerCharities,
   volunteers,
+  kinds,
   canAssignVolunteer,
   canCancel,
   onClose,
@@ -21,6 +23,7 @@ export function EditDonationEventModal({
   event: DonationEvent;
   partnerCharities: PartnerCharity[];
   volunteers: VolunteerSummary[];
+  kinds: string[];
   canAssignVolunteer: boolean;
   canCancel: boolean;
   onClose: () => void;
@@ -61,9 +64,8 @@ export function EditDonationEventModal({
         date: String(data.get("date") ?? ""),
         start_time: String(data.get("start_time") ?? ""),
         end_time: String(data.get("end_time") ?? ""),
-        packet_count: data.get("packet_count")
-          ? Number(data.get("packet_count"))
-          : undefined,
+        kind: (data.get("kind") as string) || undefined,
+        quantity: data.get("quantity") ? Number(data.get("quantity")) : undefined,
         delivery_role:
           (data.get("delivery_role") as "self" | "volunteer_needed" | null) ??
           undefined,
@@ -179,16 +181,14 @@ export function EditDonationEventModal({
               />
             </label>
           </div>
-          <label className={labelClass}>
-            Number of Food Packets (optional)
-            <input
-              type="number"
-              name="packet_count"
-              min={1}
-              defaultValue={event.packetCount ?? ""}
-              className={fieldClass}
-            />
-          </label>
+          <KindAndQuantityFields
+            kinds={kinds}
+            datalistId="edit-donation-event-kinds"
+            kindDefaultValue={event.kind}
+            quantityDefaultValue={event.quantity}
+            kindLabel="Kind of Donation (optional)"
+            quantityLabel="Quantity (optional)"
+          />
           <div className="flex flex-col gap-2 text-[13px] font-bold">
             How will this delivery happen? (optional)
             <label className="flex items-center gap-2 text-[15px] font-medium">

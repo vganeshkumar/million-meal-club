@@ -16,7 +16,11 @@ class Donation(CamelModel):
     id: str
     date: str
     location: str
-    meals: int
+    # `kind` is the category of donation ("Food Packets", "Medicine", ...)
+    # and `quantity` is how many people/lives it benefited — see
+    # specs/features/034-donation-kinds-and-quantity/design.md.
+    kind: str
+    quantity: int
     caption: str
     # Up to 5 photos per delivery, submitter-ordered; `cover_photo_url` is
     # the one the submitter chose to represent this delivery anywhere only
@@ -40,7 +44,7 @@ class Donor(CamelModel):
     location: str
     country: str = ""
     story: str
-    total_meals: int
+    total_quantity: int
     donation_count: int
     donations: list[Donation] | None = None
     # When this donor was approved — absent for donors approved before this
@@ -166,7 +170,7 @@ class DonorAdminView(BaseModel):
     location: str
     country: str = ""
     email: str
-    total_meals: int
+    total_quantity: int
     donation_count: int
     status: MembershipStatus
 
@@ -202,7 +206,12 @@ class DonationEvent(CamelModel):
     # specs/features/019-dashboard-profile-tab-and-proof-relocation/design.md.
     # Deliberately excludes location/country/story, which live on the
     # donor's Profile tab instead (specs/features/018-profile-edit).
-    packet_count: int | None = None
+    # `kind`/`quantity` renamed from `packet_count` — see
+    # specs/features/034-donation-kinds-and-quantity/design.md. Each
+    # donation event independently records its own kind, so a donor can
+    # diversify across kinds over their lifetime relationship.
+    kind: str | None = None
+    quantity: int | None = None
     delivery_role: Literal["self", "volunteer_needed"] | None = None
     partner_charity: str | None = None
     notes: str | None = None
@@ -229,7 +238,8 @@ class CreateDonationEventRequest(BaseModel):
     start_time: str
     end_time: str
     volunteer_id: str | None = None
-    packet_count: int | None = None
+    kind: str | None = None
+    quantity: int | None = None
     delivery_role: Literal["self", "volunteer_needed"] | None = None
     partner_charity: str | None = None
     notes: str | None = None
@@ -268,7 +278,8 @@ class UpdateDonationEventRequest(BaseModel):
     date: str
     start_time: str
     end_time: str
-    packet_count: int | None = None
+    kind: str | None = None
+    quantity: int | None = None
     delivery_role: Literal["self", "volunteer_needed"] | None = None
     partner_charity: str | None = None
     notes: str | None = None
@@ -281,10 +292,14 @@ class AssignVolunteerRequest(BaseModel):
 class SiteConfig(CamelModel):
     charity_name: str
     founder_name: str
-    total_meals: int
+    total_quantity: int
     milestone_2027: int
     goal_2030: int
     accent_palette: tuple[str, str]
+    # Public per-kind breakdown of total_quantity — see
+    # specs/features/034-donation-kinds-and-quantity/design.md. Only kinds
+    # with at least one approved donation appear; absent means zero.
+    kind_totals: dict[str, int] = {}
 
 
 class ContentResponse(CamelModel):
@@ -296,6 +311,11 @@ class ContentResponse(CamelModel):
     # see specs/features/014-homepage-scheduled-events/design.md. Every
     # DonationEvent, any donor, any status (not scoped to "mine").
     donation_events: list[DonationEvent]
+    # Shared, ever-growing list of donation kinds donors/events/submissions
+    # can pick from or add to — see
+    # specs/features/034-donation-kinds-and-quantity/design.md.
+    # Alphabetical except "Food Packets" pinned first.
+    kinds: list[str]
 
 
 class AuthUser(CamelModel):
@@ -339,7 +359,12 @@ class SignupRequest(BaseModel):
     notes: str | None = None
     # mode == "donor"
     email: str | None = None
-    packet_count: int | None = None
+    # `kind` is the donor's stated intent at signup (e.g. "Food Packets",
+    # "Medicine") — a signal, not a lock; each donation event they later
+    # schedule independently records its own kind. See
+    # specs/features/034-donation-kinds-and-quantity/design.md.
+    kind: str | None = None
+    quantity: int | None = None
     delivery_role: Literal["self", "volunteer_needed"] | None = None
     partner_charity: str | None = None
     donor_story: str | None = None
@@ -354,8 +379,10 @@ class SignupRequest(BaseModel):
     @model_validator(mode="after")
     def _validate_required_fields(self) -> Self:
         if self.mode == "donor":
-            if self.packet_count is None:
-                raise ValueError("packet_count is required when mode is 'donor'")
+            if self.quantity is None:
+                raise ValueError("quantity is required when mode is 'donor'")
+            if not self.kind or not self.kind.strip():
+                raise ValueError("kind is required when mode is 'donor'")
             if not self.delivery_role and not self.partner_charity:
                 raise ValueError(
                     "either delivery_role or partner_charity is required when "
@@ -399,7 +426,8 @@ class SignupAdminView(BaseModel):
     location: str
     country: str = ""
     notes: str | None = None
-    packet_count: int | None = None
+    kind: str | None = None
+    quantity: int | None = None
     delivery_role: Literal["self", "volunteer_needed"] | None = None
     partner_charity: str | None = None
     donor_story: str | None = None
@@ -423,7 +451,10 @@ class PresignResponse(BaseModel):
 
 class SubmissionRequest(BaseModel):
     location: str
-    meals: int
+    # Required even for a spontaneous submission with no linked donation
+    # event — see specs/features/034-donation-kinds-and-quantity/design.md.
+    kind: str
+    quantity: int
     # 1-5 photos, submitter-ordered. `cover_photo_key` must be one of
     # them if given, else defaults to the first. See
     # specs/features/025-multi-photo-proof-with-cover/design.md.
@@ -462,7 +493,8 @@ class SubmissionAdminView(BaseModel):
     user_id: str
     donor_id: str
     location: str
-    meals: int
+    kind: str
+    quantity: int
     photo_urls: list[str]
     cover_photo_url: str
     receipt_url: str | None = None
@@ -502,7 +534,7 @@ class UpdateVolunteerProfileRequest(BaseModel):
 class ConfigUpdateRequest(BaseModel):
     charity_name: str | None = None
     founder_name: str | None = None
-    total_meals: int | None = None
+    total_quantity: int | None = None
     milestone_2027: int | None = None
     goal_2030: int | None = None
     accent_palette: tuple[str, str] | None = None

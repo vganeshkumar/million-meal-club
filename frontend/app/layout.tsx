@@ -17,7 +17,7 @@ const karla = Karla({
 export const metadata: Metadata = {
   title: "The Million Meal Club — Progress",
   description:
-    "Tracking progress toward one million volunteer-delivered meals, one packet at a time.",
+    "Tracking progress toward one million lives impacted — meals, medicine, education, and more, entirely volunteer-delivered.",
 };
 
 export default function RootLayout({

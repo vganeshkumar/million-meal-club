@@ -6,6 +6,7 @@ import type { AuthUser, ContentResponse, Donor } from "@/lib/types";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
 import { Progress } from "@/components/Progress";
+import { DonationKindBreakdown } from "@/components/DonationKindBreakdown";
 import { Events } from "@/components/Events";
 import { HowItWorks } from "@/components/HowItWorks";
 import { JoinInForm } from "@/components/JoinInForm";
@@ -229,10 +230,14 @@ export default function Home() {
               statement in Hero) — everything else keeps its prior order. */}
           {content && (
             <Progress
-              totalMeals={config!.totalMeals}
+              totalQuantity={config!.totalQuantity}
               milestone2027={config!.milestone2027}
               goal2030={config!.goal2030}
             />
+          )}
+
+          {content && (
+            <DonationKindBreakdown kindTotals={config!.kindTotals} />
           )}
 
           <Hero
@@ -265,7 +270,8 @@ export default function Home() {
                     </h2>
                     <p className="m-0 mb-5 max-w-[460px] text-base leading-[1.7] text-muted">
                       Donors join by invitation only, committing to deliver
-                      at least 10,000 meals over 5 years — apply below and
+                      at least 10,000 units of help (food, medicine,
+                      supplies, and more) over 5 years — apply below and
                       I&apos;ll personally follow up. Not ready for that
                       commitment? Register to volunteer instead, collecting
                       and delivering for a donor who needs a hand.
@@ -278,6 +284,7 @@ export default function Home() {
                   <JoinInForm
                     user={user}
                     partnerCharities={content.partnerCharities}
+                    kinds={content.kinds}
                   />
                 </div>
               </section>
@@ -316,13 +323,17 @@ export default function Home() {
       )}
 
       {view === "my-donations" && (
-        <DonorDashboard partnerCharities={content?.partnerCharities ?? []} />
+        <DonorDashboard
+          partnerCharities={content?.partnerCharities ?? []}
+          kinds={content?.kinds ?? []}
+        />
       )}
 
       {view === "my-volunteering" && (
         <VolunteerDashboard
           events={content?.events ?? []}
           partnerCharities={content?.partnerCharities ?? []}
+          kinds={content?.kinds ?? []}
         />
       )}
 

@@ -33,5 +33,8 @@ def create_signup(
             detail="email is required",
         )
 
-    signup_id = get_store().create_signup(body, user_id, name, email)
+    store = get_store()
+    if body.mode == "donor" and body.kind:
+        store.ensure_donation_kind_exists(body.kind)
+    signup_id = store.create_signup(body, user_id, name, email)
     return SignupResponse(signup_id=signup_id)

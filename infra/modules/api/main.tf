@@ -116,6 +116,7 @@ resource "aws_lambda_function" "api" {
         DONATION_EVENTS_TABLE   = var.table_names["donation_events"]
         PARTNER_CHARITIES_TABLE = var.table_names["partner_charities"]
         CONFIG_TABLE            = var.table_names["config"]
+        DONATION_KINDS_TABLE    = var.table_names["donation_kinds"]
         PHOTOS_BUCKET_NAME      = var.photos_bucket_name
         PHOTOS_PUBLIC_BASE_URL  = var.photos_public_base_url
         ADMIN_EMAILS            = var.admin_emails

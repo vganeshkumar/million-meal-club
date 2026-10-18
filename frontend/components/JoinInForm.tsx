@@ -3,18 +3,20 @@
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { COUNTRIES } from "@/lib/countries";
+import { KindAndQuantityFields } from "@/components/KindAndQuantityFields";
 import type { AuthUser, JoinMode, PartnerCharity } from "@/lib/types";
 
 type JoinInFormProps = {
   user: AuthUser | null;
   partnerCharities: PartnerCharity[];
+  kinds: string[];
 };
 
 const fieldClass =
   "rounded-[10px] border border-border-strong bg-bg px-3.5 py-3 text-[15px] font-body";
 const labelClass = "flex flex-col gap-1.5 text-[13px] font-bold";
 
-export function JoinInForm({ user, partnerCharities }: JoinInFormProps) {
+export function JoinInForm({ user, partnerCharities, kinds }: JoinInFormProps) {
   const [mode, setMode] = useState<JoinMode>("donor");
   const [status, setStatus] = useState<"idle" | "submitting" | "done" | "error">(
     "idle",
@@ -22,6 +24,7 @@ export function JoinInForm({ user, partnerCharities }: JoinInFormProps) {
   const [errorMessage, setErrorMessage] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
   const [isValid, setIsValid] = useState(false);
+  const [chosenKind, setChosenKind] = useState("");
   const selfRoleRef = useRef<HTMLInputElement>(null);
   const volunteerRoleRef = useRef<HTMLInputElement>(null);
   const partnerCharityRef = useRef<HTMLSelectElement>(null);
@@ -46,6 +49,7 @@ export function JoinInForm({ user, partnerCharities }: JoinInFormProps) {
       return;
     }
     let valid = form.checkValidity();
+    const data = new FormData(form);
     if (mode === "donor") {
       // delivery_role and partner_charity aren't each independently
       // required — self-deliver, need-a-volunteer, and via-a-partner-
@@ -53,10 +57,10 @@ export function JoinInForm({ user, partnerCharities }: JoinInFormProps) {
       // and at least one of the three must be picked. Native `required`
       // can't express that OR across a radio group and a separate
       // select, so it's checked here instead of via checkValidity().
-      const data = new FormData(form);
       const hasDeliveryRole = Boolean(data.get("role"));
       const hasPartnerCharity = Boolean(data.get("partner_charity"));
       valid = valid && (hasDeliveryRole || hasPartnerCharity);
+      setChosenKind(String(data.get("kind") ?? ""));
     }
     setIsValid(valid);
   }
@@ -81,9 +85,10 @@ export function JoinInForm({ user, partnerCharities }: JoinInFormProps) {
         location: String(form.get("location") ?? ""),
         country: String(form.get("country") ?? ""),
         notes: (form.get("notes") as string) || undefined,
-        packet_count:
-          mode === "donor" && form.get("packets")
-            ? Number(form.get("packets"))
+        kind: mode === "donor" ? (form.get("kind") as string) || undefined : undefined,
+        quantity:
+          mode === "donor" && form.get("quantity")
+            ? Number(form.get("quantity"))
             : undefined,
         delivery_role:
           mode === "donor"
@@ -218,18 +223,15 @@ export function JoinInForm({ user, partnerCharities }: JoinInFormProps) {
         <>
           <div className="rounded-xl bg-green-soft px-4 py-3.5 text-[13.5px] leading-[1.6] font-semibold text-[var(--accent-green)]">
             Donors are by invitation only and commit to delivering a minimum
-            of 10,000 meals within 5 years of joining.
+            of 10,000 units of help within 5 years of joining.
           </div>
-          <label className={labelClass}>
-            Number of Food Packets (to start)
-            <input
-              type="number"
-              name="packets"
-              min={1}
-              required
-              className={fieldClass}
-            />
-          </label>
+          <KindAndQuantityFields
+            kinds={kinds}
+            datalistId="join-in-kinds"
+            required
+            kindLabel="Kind of Donation"
+            quantityLabel="Quantity (to start)"
+          />
           <div className="flex flex-col gap-2 text-[13px] font-bold">
             Delivery role (required unless giving through a partner charity
             below)
@@ -287,7 +289,8 @@ export function JoinInForm({ user, partnerCharities }: JoinInFormProps) {
               required
               className="mt-1"
             />
-            I commit to delivering at least 10,000 meals within 5 years of
+            I commit to delivering at least 10,000{" "}
+            {chosenKind ? chosenKind : "units of help"} within 5 years of
             joining as a donor.
           </label>
           <label className="flex items-start gap-2.5 text-sm leading-[1.5] font-medium">

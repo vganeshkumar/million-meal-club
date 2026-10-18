@@ -45,7 +45,8 @@ async function approveDonorAndSignIn(
       email,
       location: "Austin, TX",
       country: "United States",
-      packet_count: 100,
+      kind: "Food Packets",
+      quantity: 100,
       delivery_role: "self",
       donor_story: "Testing the homepage events feed.",
       commit_50k_4yr: true,
@@ -146,7 +147,8 @@ test("a donor's scheduled donation event shows on the homepage and moves to Comp
   await expect(
     submitForm.getByLabel("Location", { exact: true }),
   ).toHaveValue(uniqueLocation);
-  await submitForm.getByLabel("Meals Delivered").fill("50");
+  await submitForm.getByLabel("Kind of Donation").fill("Food Packets");
+  await submitForm.getByLabel("Quantity (people/lives benefited)").fill("50");
   await submitForm
     .getByLabel("Photo Proof")
     .setInputFiles(tinyPngFile("proof.png"));

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 type ProgressProps = {
-  totalMeals: number;
+  totalQuantity: number;
   milestone2027: number;
   goal2030: number;
 };
@@ -13,7 +13,7 @@ function easeOutCubic(p: number): number {
 }
 
 export function Progress({
-  totalMeals,
+  totalQuantity,
   milestone2027,
   goal2030,
 }: ProgressProps) {
@@ -29,7 +29,7 @@ export function Progress({
       const start = performance.now();
       const tick = (now: number) => {
         const p = Math.min(1, (now - start) / duration);
-        setCount(Math.round(easeOutCubic(p) * totalMeals));
+        setCount(Math.round(easeOutCubic(p) * totalQuantity));
         if (p < 1) requestAnimationFrame(tick);
       };
       requestAnimationFrame(tick);
@@ -53,7 +53,7 @@ export function Progress({
       observer?.disconnect();
       clearTimeout(fallback);
     };
-  }, [totalMeals]);
+  }, [totalQuantity]);
 
   const progressPct = Math.max(
     2,
@@ -74,7 +74,7 @@ export function Progress({
           {count.toLocaleString()}
         </div>
         <p className="mb-10 text-lg text-ink-muted">
-          meals delivered so far — verified by photo proof from our
+          lives impacted so far — verified by photo proof from our
           volunteers, on the way to touching a million lives
         </p>
 
@@ -92,7 +92,7 @@ export function Progress({
           <p className="mt-5 text-[15px] text-ink-muted">
             And beyond that — our lifetime goal is{" "}
             <strong className="text-ink-fg">
-              {goal2030.toLocaleString()} meals by 2035
+              {goal2030.toLocaleString()} lives by 2035
             </strong>
             .
           </p>

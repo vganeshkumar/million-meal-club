@@ -22,8 +22,8 @@ export function FeaturedDonors({ donors, onSelectDonor }: FeaturedDonorsProps) {
           </h2>
           <p className="m-0 text-base leading-[1.65] text-muted">
             Our donors join by invitation only, each committing to at least
-            10,000 meals over 5 years. Ranked by meals delivered — read
-            their stories and see what&apos;s driving them.
+            10,000 units of help over 5 years. Ranked by lives impacted —
+            read their stories and see what&apos;s driving them.
           </p>
         </div>
         <ScrollRow>
@@ -62,10 +62,10 @@ export function FeaturedDonors({ donors, onSelectDonor }: FeaturedDonorsProps) {
                       style={{ color: "var(--accent-green)" }}
                       className="font-display text-[34px] font-extrabold"
                     >
-                      {donor.totalMeals.toLocaleString()}
+                      {donor.totalQuantity.toLocaleString()}
                     </span>
                     <span className="text-[12.5px] font-bold tracking-[0.04em] text-muted-2 uppercase">
-                      meals delivered
+                      lives impacted
                     </span>
                   </div>
                 )}

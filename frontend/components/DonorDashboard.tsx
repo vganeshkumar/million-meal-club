@@ -5,6 +5,7 @@ import { api, ApiError, uploadPhotos, uploadToPresignedUrl } from "@/lib/api";
 import { COUNTRIES } from "@/lib/countries";
 import { AddressMapPreview } from "@/components/AddressMapPreview";
 import { EditDonationEventModal } from "@/components/EditDonationEventModal";
+import { KindAndQuantityFields } from "@/components/KindAndQuantityFields";
 import { PhotoProofPicker } from "@/components/PhotoProofPicker";
 import type {
   Donation,
@@ -39,9 +40,10 @@ type DashboardTab =
 
 type DonorDashboardProps = {
   partnerCharities: PartnerCharity[];
+  kinds: string[];
 };
 
-export function DonorDashboard({ partnerCharities }: DonorDashboardProps) {
+export function DonorDashboard({ partnerCharities, kinds }: DonorDashboardProps) {
   const [donor, setDonor] = useState<Donor | null>(null);
   const [error, setError] = useState("");
   const [tab, setTab] = useState<DashboardTab>("overview");
@@ -170,6 +172,7 @@ export function DonorDashboard({ partnerCharities }: DonorDashboardProps) {
               <ScheduleDonationSection
                 partnerCharities={partnerCharities}
                 volunteers={volunteers}
+                kinds={kinds}
                 onCreated={refreshEvents}
               />
             )}
@@ -180,6 +183,7 @@ export function DonorDashboard({ partnerCharities }: DonorDashboardProps) {
                 error={eventsError}
                 volunteers={volunteers}
                 partnerCharities={partnerCharities}
+                kinds={kinds}
                 onChanged={refreshEvents}
               />
             )}
@@ -188,6 +192,7 @@ export function DonorDashboard({ partnerCharities }: DonorDashboardProps) {
               <SubmitProofSection
                 partnerCharities={partnerCharities}
                 scheduledEvents={scheduledEvents}
+                kinds={kinds}
                 onSubmitted={refreshEvents}
               />
             )}
@@ -234,9 +239,9 @@ function OverviewSection({ donor }: { donor: Donor }) {
       <div className="grid grid-cols-2 gap-4">
         <div className="rounded-2xl border border-border bg-card p-5">
           <p className="m-0 text-3xl font-extrabold text-[var(--accent-green)]">
-            {donor.totalMeals.toLocaleString()}
+            {donor.totalQuantity.toLocaleString()}
           </p>
-          <p className="m-0 mt-1 text-sm text-muted-2">Meals delivered</p>
+          <p className="m-0 mt-1 text-sm text-muted-2">Lives impacted</p>
         </div>
         <div className="rounded-2xl border border-border bg-card p-5">
           <p className="m-0 text-3xl font-extrabold">{donor.donationCount}</p>
@@ -350,10 +355,12 @@ function ProfileSection({
 function ScheduleDonationSection({
   partnerCharities,
   volunteers,
+  kinds,
   onCreated,
 }: {
   partnerCharities: PartnerCharity[];
   volunteers: VolunteerSummary[];
+  kinds: string[];
   onCreated: () => void;
 }) {
   const [creating, setCreating] = useState(false);
@@ -396,9 +403,8 @@ function ScheduleDonationSection({
         start_time: String(data.get("start_time") ?? ""),
         end_time: String(data.get("end_time") ?? ""),
         volunteer_id: (data.get("volunteer_id") as string) || undefined,
-        packet_count: data.get("packet_count")
-          ? Number(data.get("packet_count"))
-          : undefined,
+        kind: (data.get("kind") as string) || undefined,
+        quantity: data.get("quantity") ? Number(data.get("quantity")) : undefined,
         delivery_role:
           (data.get("delivery_role") as "self" | "volunteer_needed" | null) ??
           undefined,
@@ -475,15 +481,12 @@ function ScheduleDonationSection({
             />
           </label>
         </div>
-        <label className={labelClass}>
-          Number of Food Packets (optional)
-          <input
-            type="number"
-            name="packet_count"
-            min={1}
-            className={fieldClass}
-          />
-        </label>
+        <KindAndQuantityFields
+          kinds={kinds}
+          datalistId="schedule-donation-kinds"
+          kindLabel="Kind of Donation (optional)"
+          quantityLabel="Quantity (optional)"
+        />
         <div className="flex flex-col gap-2 text-[13px] font-bold">
           How will this delivery happen? (optional)
           <label className="flex items-center gap-2 text-[15px] font-medium">
@@ -564,6 +567,7 @@ function ScheduledEventsSection({
   error,
   volunteers,
   partnerCharities,
+  kinds,
   onChanged,
 }: {
   events: DonationEvent[];
@@ -571,6 +575,7 @@ function ScheduledEventsSection({
   error: string;
   volunteers: VolunteerSummary[];
   partnerCharities: PartnerCharity[];
+  kinds: string[];
   onChanged: () => void;
 }) {
   const [selected, setSelected] = useState<DonationEvent | null>(null);
@@ -598,9 +603,9 @@ function ScheduledEventsSection({
               <p className="m-0 text-sm font-bold">
                 {ev.date} — {ev.location}
               </p>
-              {ev.packetCount && (
+              {ev.quantity && ev.kind && (
                 <p className="m-0 mt-1 text-xs text-muted-2">
-                  {ev.packetCount} food packets
+                  {ev.quantity} {ev.kind}
                 </p>
               )}
             </div>
@@ -613,6 +618,7 @@ function ScheduledEventsSection({
           event={selected}
           partnerCharities={partnerCharities}
           volunteers={volunteers}
+          kinds={kinds}
           canAssignVolunteer
           canCancel
           onClose={() => setSelected(null)}
@@ -697,7 +703,7 @@ function CompletedEventsSection({ donor }: { donor: Donor }) {
           >
             <div>
               <p className="m-0 text-sm font-bold">
-                {d.meals} meals — {d.location}
+                {d.quantity} {d.kind} — {d.location}
               </p>
               <p className="m-0 mt-1 text-xs text-muted-2">{d.date}</p>
               {d.caption && (
@@ -746,7 +752,7 @@ function CompletedDonationModal({
       <div className="fixed top-1/2 left-1/2 z-[201] flex max-h-[90vh] w-[min(480px,90vw)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-y-auto rounded-3xl bg-card p-[clamp(24px,3vw,32px)] shadow-[0_24px_60px_oklch(21%_0.03_155_/_0.25)]">
         <div className="flex items-center justify-between gap-2">
           <h3 className="m-0 font-display text-lg font-bold">
-            {donation.meals} meals — {donation.location}
+            {donation.quantity} {donation.kind} — {donation.location}
           </h3>
           <button
             type="button"
@@ -808,10 +814,12 @@ function CompletedDonationModal({
 function SubmitProofSection({
   partnerCharities,
   scheduledEvents,
+  kinds,
   onSubmitted,
 }: {
   partnerCharities: PartnerCharity[];
   scheduledEvents: DonationEvent[];
+  kinds: string[];
   onSubmitted: () => void;
 }) {
   const [status, setStatus] = useState<
@@ -820,7 +828,8 @@ function SubmitProofSection({
   const [errorMessage, setErrorMessage] = useState("");
   const [selectedEventId, setSelectedEventId] = useState("");
   const [location, setLocation] = useState("");
-  const [mealsDelivered, setMealsDelivered] = useState("");
+  const [kind, setKind] = useState("");
+  const [quantity, setQuantity] = useState("");
   const [deliveryRole, setDeliveryRole] = useState<
     "self" | "volunteer_needed" | ""
   >("");
@@ -834,8 +843,10 @@ function SubmitProofSection({
     setSelectedEventId(eventId);
     const event = scheduledEvents.find((e) => e.id === eventId);
     setLocation(event ? event.location : "");
-    // Default to what was entered at schedule/edit time; still editable below.
-    setMealsDelivered(event?.packetCount ? String(event.packetCount) : "");
+    // Default to what was entered at schedule/edit time; still editable
+    // below when the event didn't have one set.
+    setKind(event?.kind ?? "");
+    setQuantity(event?.quantity ? String(event.quantity) : "");
     setDeliveryRole(event?.deliveryRole ?? "");
     setPartnerCharity(event?.partnerCharity ?? "");
     setPhotoFiles([]);
@@ -881,7 +892,8 @@ function SubmitProofSection({
 
       await api.submitProof({
         location,
-        meals: Number(data.get("meals_delivered") ?? 0),
+        kind,
+        quantity: Number(data.get("quantity") ?? 0),
         photo_keys: photoKeys,
         cover_photo_key: photoKeys[coverIndex],
         receipt_key: receiptKey,
@@ -895,7 +907,8 @@ function SubmitProofSection({
       setStatus("done");
       setSelectedEventId("");
       setLocation("");
-      setMealsDelivered("");
+      setKind("");
+      setQuantity("");
       setDeliveryRole("");
       setPartnerCharity("");
       setPhotoFiles([]);
@@ -923,7 +936,7 @@ function SubmitProofSection({
             Thanks — submitted for review!
           </p>
           <p className="mt-2 mb-0 text-sm text-muted">
-            Your meal count updates once it&apos;s approved.
+            Your impact total updates once it&apos;s approved.
           </p>
         </div>
       ) : scheduledEvents.length === 0 ? (
@@ -967,14 +980,36 @@ function SubmitProofSection({
                 className={fieldClass}
               />
             </label>
+          </div>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-4">
             <label className={labelClass}>
-              Meals Delivered
+              Kind of Donation
+              <input
+                type="text"
+                name="kind"
+                list="submit-proof-kinds"
+                value={kind}
+                onChange={(e) => setKind(e.target.value)}
+                readOnly={Boolean(selectedEvent?.kind)}
+                required
+                placeholder="Food Packets"
+                className={fieldClass}
+              />
+              <datalist id="submit-proof-kinds">
+                {kinds.map((k) => (
+                  <option key={k} value={k} />
+                ))}
+              </datalist>
+            </label>
+            <label className={labelClass}>
+              Quantity (people/lives benefited)
               <input
                 type="number"
-                name="meals_delivered"
+                name="quantity"
                 min={1}
-                value={mealsDelivered}
-                onChange={(e) => setMealsDelivered(e.target.value)}
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                readOnly={Boolean(selectedEvent?.quantity)}
                 required
                 className={fieldClass}
               />

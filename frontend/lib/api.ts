@@ -128,7 +128,8 @@ export const api = {
     start_time: string;
     end_time: string;
     volunteer_id?: string;
-    packet_count?: number;
+    kind?: string;
+    quantity?: number;
     delivery_role?: "self" | "volunteer_needed";
     partner_charity?: string;
     notes?: string;
@@ -144,7 +145,8 @@ export const api = {
       date: string;
       start_time: string;
       end_time: string;
-      packet_count?: number;
+      kind?: string;
+      quantity?: number;
       delivery_role?: "self" | "volunteer_needed";
       partner_charity?: string;
       notes?: string;

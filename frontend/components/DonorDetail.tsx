@@ -39,10 +39,10 @@ export function DonorDetail({ donor, loading }: DonorDetailProps) {
             style={{ color: "var(--accent-green)" }}
             className="font-display text-4xl font-extrabold"
           >
-            {donor.totalMeals.toLocaleString()}
+            {donor.totalQuantity.toLocaleString()}
           </div>
           <div className="text-[12.5px] font-bold tracking-[0.04em] text-muted-2 uppercase">
-            meals delivered
+            lives impacted
           </div>
         </div>
         <div>
@@ -67,7 +67,7 @@ export function DonorDetail({ donor, loading }: DonorDetailProps) {
             10,000 / 5 yrs
           </div>
           <div className="text-[12.5px] font-bold tracking-[0.04em] text-muted-2 uppercase">
-            committed meals
+            units committed
           </div>
         </div>
       </div>
@@ -118,7 +118,7 @@ export function DonorDetail({ donor, loading }: DonorDetailProps) {
                   style={{ color: "var(--accent-green)" }}
                   className="m-0 mb-2.5 font-display text-2xl font-extrabold"
                 >
-                  {d.meals.toLocaleString()} meals
+                  {d.quantity.toLocaleString()} {d.kind}
                 </p>
                 <p className="m-0 text-sm leading-[1.6] text-muted">
                   {d.caption}

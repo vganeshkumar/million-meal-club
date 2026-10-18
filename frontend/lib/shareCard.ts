@@ -85,9 +85,10 @@ export async function generateEventShareImage(
     ctx.fillText(partnerLine, pad, SIZE - pad - 76);
   }
 
-  const footerLine = event.packetCount
-    ? `${event.packetCount.toLocaleString()} food packets · A donation from ${event.donorName}`
-    : `A donation from ${event.donorName}`;
+  const footerLine =
+    event.quantity && event.kind
+      ? `${event.quantity.toLocaleString()} ${event.kind} · A donation from ${event.donorName}`
+      : `A donation from ${event.donorName}`;
   ctx.fillStyle = PAPER_FAINT;
   ctx.font = "500 24px 'Karla', sans-serif";
   ctx.fillText(footerLine, pad, SIZE - pad - 36);

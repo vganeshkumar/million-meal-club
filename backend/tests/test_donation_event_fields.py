@@ -21,7 +21,8 @@ def _approve_donor(client, email: str, name: str) -> None:
             "mode": "donor",
             "location": "Austin, TX",
             "country": "United States",
-            "packet_count": 100,
+            "kind": "Food Packets",
+            "quantity": 100,
             "delivery_role": "self",
             "donor_story": "Testing donation event fields.",
             "commit_50k_4yr": True,
@@ -47,7 +48,8 @@ def test_donation_event_accepts_and_returns_new_optional_fields(client):
             "date": "2026-09-01",
             "start_time": "09:00",
             "end_time": "11:00",
-            "packet_count": 75,
+            "kind": "Education Supplies",
+            "quantity": 75,
             "delivery_role": "volunteer_needed",
             "partner_charity": "Central Texas Food Bank",
             "notes": "Leave packets at the front desk.",
@@ -55,7 +57,8 @@ def test_donation_event_accepts_and_returns_new_optional_fields(client):
     )
     assert resp.status_code == 200
     body = resp.json()
-    assert body["packetCount"] == 75
+    assert body["kind"] == "Education Supplies"
+    assert body["quantity"] == 75
     assert body["deliveryRole"] == "volunteer_needed"
     assert body["partnerCharity"] == "Central Texas Food Bank"
     assert body["notes"] == "Leave packets at the front desk."
@@ -64,7 +67,8 @@ def test_donation_event_accepts_and_returns_new_optional_fields(client):
     assert resp.status_code == 200
     events = {e["id"]: e for e in resp.json()}
     event = events[body["id"]]
-    assert event["packetCount"] == 75
+    assert event["kind"] == "Education Supplies"
+    assert event["quantity"] == 75
     assert event["deliveryRole"] == "volunteer_needed"
     assert event["partnerCharity"] == "Central Texas Food Bank"
     assert event["notes"] == "Leave packets at the front desk."
@@ -85,7 +89,8 @@ def test_donation_event_still_works_with_only_required_fields(client):
     )
     assert resp.status_code == 200
     body = resp.json()
-    assert body["packetCount"] is None
+    assert body["kind"] is None
+    assert body["quantity"] is None
     assert body["deliveryRole"] is None
     assert body["partnerCharity"] is None
     assert body["notes"] is None

@@ -169,7 +169,8 @@ class Store(Protocol):
         volunteer_name: str | None,
         latitude: float | None = None,
         longitude: float | None = None,
-        packet_count: int | None = None,
+        kind: str | None = None,
+        quantity: int | None = None,
         delivery_role: str | None = None,
         partner_charity: str | None = None,
         notes: str | None = None,
@@ -213,7 +214,8 @@ class Store(Protocol):
         date: str,
         start_time: str,
         end_time: str,
-        packet_count: int | None,
+        kind: str | None,
+        quantity: int | None,
         delivery_role: str | None,
         partner_charity: str | None,
         notes: str | None,
@@ -233,7 +235,8 @@ class Store(Protocol):
         donor_id: str,
         submitted_by_user_id: str,
         location: str,
-        meals: int,
+        kind: str,
+        quantity: int,
         photo_keys: list[str],
         cover_photo_key: str,
         receipt_key: str | None,
@@ -275,6 +278,15 @@ class Store(Protocol):
         ...
 
     def update_config(self, **fields) -> None: ...
+
+    def ensure_donation_kind_exists(self, kind: str) -> None:
+        """Idempotent upsert into the shared, ever-growing list of donation
+        kinds — no-ops if `kind` is already known. Called by every
+        endpoint that accepts a `kind` (signup, donation-event create/
+        update, submission-create) so a newly-typed kind is immediately
+        selectable for everyone else. See
+        specs/features/034-donation-kinds-and-quantity/design.md."""
+        ...
 
     def create_partner_charity(
         self,

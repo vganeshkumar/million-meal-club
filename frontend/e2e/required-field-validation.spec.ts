@@ -21,7 +21,8 @@ test.describe("Join In form — required-field gating", () => {
     await page.getByLabel("Location / City").fill("Austin, TX");
     await expect(submit).toBeDisabled();
 
-    await page.getByLabel(/Number of Food Packets/).fill("100");
+    await page.getByLabel("Kind of Donation").fill("Food Packets");
+    await page.getByLabel("Quantity (to start)").fill("100");
     await expect(submit).toBeDisabled();
 
     await page.getByLabel("I'll deliver it myself").check();
@@ -60,7 +61,8 @@ test.describe("Join In form — required-field gating", () => {
       .getByLabel("Email", { exact: true })
       .fill("pw-partner-donor@example.com");
     await page.getByLabel("Location / City").fill("Austin, TX");
-    await page.getByLabel(/Number of Food Packets/).fill("100");
+    await page.getByLabel("Kind of Donation").fill("Food Packets");
+    await page.getByLabel("Quantity (to start)").fill("100");
     await page
       .getByLabel(/Your Donor Story/)
       .fill("Because it matters to my family.");

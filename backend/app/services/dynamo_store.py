@@ -60,6 +60,7 @@ class DynamoStore:
         self._event_signups = resource.Table(os.environ["EVENT_SIGNUPS_TABLE"])
         self._donation_events = resource.Table(os.environ["DONATION_EVENTS_TABLE"])
         self._config = resource.Table(os.environ["CONFIG_TABLE"])
+        self._donation_kinds = resource.Table(os.environ["DONATION_KINDS_TABLE"])
 
     def _get_config_item(self) -> dict:
         resp = self._config.get_item(Key={"pk": "site"})
@@ -74,7 +75,7 @@ class DynamoStore:
                 for d in donors_resp.get("Items", [])
                 if d.get("status", "active") != "disabled"
             ),
-            key=lambda d: int(d.get("total_meals", 0)),
+            key=lambda d: int(d.get("total_quantity", 0)),
             reverse=True,
         )
         events_resp = self._events.scan()
@@ -84,7 +85,7 @@ class DynamoStore:
             config=SiteConfig(
                 charity_name=config_item.get("charity_name", "The Million Meal Club"),
                 founder_name=config_item.get("founder_name", "Founder"),
-                total_meals=int(config_item.get("total_meals", 0)),
+                total_quantity=int(config_item.get("total_quantity", 0)),
                 milestone_2027=int(config_item.get("milestone_2027", 100000)),
                 goal_2030=int(config_item.get("goal_2030", 1000000)),
                 accent_palette=tuple(
@@ -93,6 +94,9 @@ class DynamoStore:
                         ["oklch(38% 0.1 155)", "oklch(68% 0.15 55)"],
                     )
                 ),
+                kind_totals={
+                    k: int(v) for k, v in config_item.get("kind_totals", {}).items()
+                },
             ),
             donors=[
                 Donor(
@@ -101,7 +105,7 @@ class DynamoStore:
                     location=d.get("location", ""),
                     country=d.get("country", ""),
                     story=d.get("story", ""),
-                    total_meals=int(d.get("total_meals", 0)),
+                    total_quantity=int(d.get("total_quantity", 0)),
                     donation_count=int(d.get("donation_count", 0)),
                     created_at=d.get("created_at"),
                 )
@@ -142,7 +146,13 @@ class DynamoStore:
                 if c.get("status", "active") != "disabled"
             ],
             donation_events=self._public_donation_events(),
+            kinds=self._sorted_kinds(),
         )
+
+    def _sorted_kinds(self) -> list[str]:
+        names = {k["kind"] for k in self._donation_kinds.scan().get("Items", [])}
+        rest = sorted(k for k in names if k != "Food Packets")
+        return (["Food Packets"] if "Food Packets" in names else []) + rest
 
     def _public_donation_events(self) -> list[DonationEvent]:
         """list_all_donation_events(), minus any event tied to a disabled
@@ -196,7 +206,7 @@ class DynamoStore:
             location=d.get("location", ""),
             country=d.get("country", ""),
             story=d.get("story", ""),
-            total_meals=int(d.get("total_meals", 0)),
+            total_quantity=int(d.get("total_quantity", 0)),
             donation_count=int(d.get("donation_count", 0)),
             created_at=d.get("created_at"),
             donations=[
@@ -204,7 +214,8 @@ class DynamoStore:
                     id=x["donation_id"],
                     date=x["date"],
                     location=x["location"],
-                    meals=int(x["meals"]),
+                    kind=x.get("kind", "Food Packets"),
+                    quantity=int(x.get("quantity", 0)),
                     caption=x.get("caption", ""),
                     photo_urls=[blob.public_url(k) for k in x["photo_keys"]]
                     if x.get("photo_keys")
@@ -330,7 +341,7 @@ class DynamoStore:
                 location=d.get("location", ""),
                 country=d.get("country", ""),
                 email=d.get("email", ""),
-                total_meals=int(d.get("total_meals", 0)),
+                total_quantity=int(d.get("total_quantity", 0)),
                 donation_count=int(d.get("donation_count", 0)),
                 status=d.get("status", "active"),
             )
@@ -488,7 +499,7 @@ class DynamoStore:
                     "country": signup.get("country", ""),
                     "story": signup.get("donor_story", ""),
                     "email": email,
-                    "total_meals": 0,
+                    "total_quantity": 0,
                     "donation_count": 0,
                     "local_username": local_username,
                     "status": "active",
@@ -564,7 +575,8 @@ class DynamoStore:
             volunteer_name=e.get("volunteer_name"),
             status=e["status"],
             submission_id=e.get("submission_id"),
-            packet_count=e.get("packet_count"),
+            kind=e.get("kind"),
+            quantity=e.get("quantity"),
             delivery_role=e.get("delivery_role"),
             partner_charity=e.get("partner_charity"),
             notes=e.get("notes"),
@@ -589,7 +601,8 @@ class DynamoStore:
         volunteer_name: str | None,
         latitude: float | None = None,
         longitude: float | None = None,
-        packet_count: int | None = None,
+        kind: str | None = None,
+        quantity: int | None = None,
         delivery_role: str | None = None,
         partner_charity: str | None = None,
         notes: str | None = None,
@@ -612,8 +625,10 @@ class DynamoStore:
         if latitude is not None and longitude is not None:
             item["latitude"] = Decimal(str(latitude))
             item["longitude"] = Decimal(str(longitude))
-        if packet_count is not None:
-            item["packet_count"] = packet_count
+        if kind is not None:
+            item["kind"] = kind
+        if quantity is not None:
+            item["quantity"] = quantity
         if delivery_role:
             item["delivery_role"] = delivery_role
         if partner_charity:
@@ -702,7 +717,8 @@ class DynamoStore:
         date: str,
         start_time: str,
         end_time: str,
-        packet_count: int | None,
+        kind: str | None,
+        quantity: int | None,
         delivery_role: str | None,
         partner_charity: str | None,
         notes: str | None,
@@ -717,7 +733,8 @@ class DynamoStore:
             raise ValueError("Donation event can't be edited")
 
         optional_fields = {
-            "packet_count": packet_count,
+            "kind": kind,
+            "quantity": quantity,
             "delivery_role": delivery_role,
             "partner_charity": partner_charity,
             "notes": notes,
@@ -775,7 +792,8 @@ class DynamoStore:
         donor_id: str,
         submitted_by_user_id: str,
         location: str,
-        meals: int,
+        kind: str,
+        quantity: int,
         photo_keys: list[str],
         cover_photo_key: str,
         receipt_key: str | None,
@@ -790,7 +808,8 @@ class DynamoStore:
             "user_id": submitted_by_user_id,
             "donor_id": donor_id,
             "location": location,
-            "meals": meals,
+            "kind": kind,
+            "quantity": quantity,
             "photo_keys": photo_keys,
             "cover_photo_key": cover_photo_key,
             "status": "pending",
@@ -940,7 +959,8 @@ class DynamoStore:
             "donation_id": donation_id,
             "date": s["created_at"][:10],
             "location": s["location"],
-            "meals": s["meals"],
+            "kind": s["kind"],
+            "quantity": s["quantity"],
             "caption": s.get("caption", ""),
             "photo_keys": approved_keys,
             "cover_photo_key": approved_cover_key,
@@ -956,13 +976,21 @@ class DynamoStore:
         self._donations.put_item(Item=donation_item)
         self._donors.update_item(
             Key={"donor_id": donor_id},
-            UpdateExpression="ADD total_meals :m, donation_count :one",
-            ExpressionAttributeValues={":m": s["meals"], ":one": 1},
+            UpdateExpression="ADD total_quantity :q, donation_count :one",
+            ExpressionAttributeValues={":q": s["quantity"], ":one": 1},
         )
+        # DynamoDB's ADD can't create a new key inside a map, so the
+        # per-kind breakdown needs SET ... if_not_exists(...) instead of a
+        # plain ADD — see
+        # specs/features/034-donation-kinds-and-quantity/design.md.
         self._config.update_item(
             Key={"pk": "site"},
-            UpdateExpression="ADD total_meals :m",
-            ExpressionAttributeValues={":m": s["meals"]},
+            UpdateExpression=(
+                "SET total_quantity = if_not_exists(total_quantity, :zero) + :q, "
+                "kind_totals.#k = if_not_exists(kind_totals.#k, :zero) + :q"
+            ),
+            ExpressionAttributeNames={"#k": s["kind"]},
+            ExpressionAttributeValues={":q": s["quantity"], ":zero": 0},
         )
         # Public (CloudFront) URL of the approved cover photo, distinct from
         # list_submissions()'s transient presigned cover_photo_url — this is
@@ -1039,6 +1067,12 @@ class DynamoStore:
             ExpressionAttributeNames={f"#{k}": k for k in updates},
             ExpressionAttributeValues={f":{k}": v for k, v in updates.items()},
         )
+
+    def ensure_donation_kind_exists(self, kind: str) -> None:
+        # Unconditional PutItem is intentional — "already exists" isn't an
+        # error here, just a cheap no-op overwrite. See
+        # specs/features/034-donation-kinds-and-quantity/design.md.
+        self._donation_kinds.put_item(Item={"kind": kind})
 
     def create_partner_charity(
         self,
