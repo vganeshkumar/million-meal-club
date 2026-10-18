@@ -26,6 +26,10 @@ const FAQS = [
     a: "Any packed, ready-to-eat meal or food parcel meant for one person. Consistency matters more than the exact format.",
   },
   {
+    q: "Can I donate something other than food packets?",
+    a: "Yes — alongside food packets, donors can now give other kinds of help too, like medicine, clothing, education supplies, or anything else that reaches people in need. Pick a kind when you apply (or type in a new one if it's not listed), and tell us the quantity — how many people or lives it'll reach. It counts toward your 10,000-unit, 5-year commitment and the site's running total exactly the same way food packets always have.",
+  },
+  {
     q: "How are delivery locations chosen?",
     a: "You choose. Tell us your neighborhood or city when you sign up, and we'll help connect you with people there who need it.",
   },
