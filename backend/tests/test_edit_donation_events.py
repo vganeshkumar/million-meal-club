@@ -17,7 +17,8 @@ EDIT_PAYLOAD = {
     "date": "2026-09-15",
     "start_time": "10:00",
     "end_time": "12:00",
-    "packet_count": 75,
+    "kind": "Education Supplies",
+    "quantity": 75,
     "delivery_role": "self",
     "notes": "Updated notes.",
 }
@@ -31,7 +32,8 @@ def _approve_donor(client, email: str, name: str) -> None:
             "mode": "donor",
             "location": "Austin, TX",
             "country": "United States",
-            "packet_count": 100,
+            "kind": "Food Packets",
+            "quantity": 100,
             "delivery_role": "self",
             "donor_story": "Testing edit flow.",
             "commit_50k_4yr": True,
@@ -98,7 +100,8 @@ def test_donor_can_edit_their_own_scheduled_event(client):
     body = resp.json()
     assert body["location"] == "West Austin"
     assert body["date"] == "2026-09-15"
-    assert body["packetCount"] == 75
+    assert body["kind"] == "Education Supplies"
+    assert body["quantity"] == 75
     assert body["deliveryRole"] == "self"
     assert body["notes"] == "Updated notes."
     assert body["status"] == "scheduled"
@@ -122,7 +125,8 @@ def test_edit_omits_optional_fields_clears_them(client):
     )
     assert resp.status_code == 200
     body = resp.json()
-    assert body["packetCount"] is None
+    assert body["kind"] is None
+    assert body["quantity"] is None
     assert body["deliveryRole"] is None
     assert body["notes"] is None
 
@@ -163,7 +167,8 @@ def test_cannot_edit_an_already_submitted_event(client):
         "/api/submissions",
         json={
             "location": "East Austin",
-            "meals": 50,
+            "kind": "Food Packets",
+            "quantity": 50,
             "photo_keys": ["uploads/fake-edit-key.jpg"],
             "donation_event_id": event_id,
         },

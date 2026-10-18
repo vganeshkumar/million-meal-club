@@ -75,11 +75,13 @@ def create_submission(
                 detail=DONOR_NOT_APPROVED_DETAIL,
             )
 
+    store.ensure_donation_kind_exists(body.kind)
     submission_id = store.create_submission(
         donor_id=donor_id,
         submitted_by_user_id=user_id,
         location=location,
-        meals=body.meals,
+        kind=body.kind,
+        quantity=body.quantity,
         photo_keys=body.photo_keys,
         cover_photo_key=body.cover_photo_key or body.photo_keys[0],
         receipt_key=body.receipt_key,

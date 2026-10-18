@@ -83,7 +83,8 @@ def post_submission_to_facebook(
         )
 
     message = (
-        s.get("caption") or f"{s['meals']} meals delivered to {s['location']}!"
+        s.get("caption")
+        or f"{s['quantity']} {s['kind']} delivered to {s['location']}!"
     ) + f"\n\n{SITE_BASE_URL}"
     try:
         post_id = get_facebook_poster().post_photo(

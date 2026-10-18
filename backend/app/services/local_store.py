@@ -47,10 +47,20 @@ class LocalStore:
         self._config = {
             "charity_name": "The Million Meal Club",
             "founder_name": "Ganesh Venkataraman",
-            "total_meals": 10000,
+            "total_quantity": 10000,
             "milestone_2027": 100000,
             "goal_2030": 1000000,
             "accent_palette": ("oklch(38% 0.1 155)", "oklch(68% 0.15 55)"),
+            "kind_totals": {"Food Packets": 10000},
+        }
+        # Shared, ever-growing list of donation kinds — see
+        # specs/features/034-donation-kinds-and-quantity/design.md.
+        self._donation_kinds: set[str] = {
+            "Food Packets",
+            "Education Supplies",
+            "Clothing",
+            "Medicine",
+            "Ambulance / Transport",
         }
         self._donors: dict[str, dict] = {}
         self._donations: dict[str, list[dict]] = {}
@@ -96,14 +106,16 @@ class LocalStore:
                     "id": "don-1a",
                     "date": "2026-04-12",
                     "location": "East Austin",
-                    "meals": 220,
+                    "kind": "Food Packets",
+                    "quantity": 220,
                     "caption": "Delivered with two volunteers to the community center.",
                 },
                 {
                     "id": "don-1b",
                     "date": "2026-06-01",
                     "location": "East Austin",
-                    "meals": 180,
+                    "kind": "Food Packets",
+                    "quantity": 180,
                     "caption": "Second monthly drop-off, same route.",
                 },
             ],
@@ -112,7 +124,8 @@ class LocalStore:
                     "id": "don-2a",
                     "date": "2026-05-03",
                     "location": "North Austin",
-                    "meals": 150,
+                    "kind": "Food Packets",
+                    "quantity": 150,
                     "caption": "Delivered during my regular route stop.",
                 }
             ],
@@ -121,7 +134,8 @@ class LocalStore:
                     "id": "don-3a",
                     "date": "2026-05-20",
                     "location": "Cedar Park",
-                    "meals": 90,
+                    "kind": "Food Packets",
+                    "quantity": 90,
                     "caption": "First delivery — more to come!",
                 }
             ],
@@ -192,7 +206,7 @@ class LocalStore:
                     location=d["location"],
                     country=d.get("country", ""),
                     story=d["story"],
-                    total_meals=d["total_meals"],
+                    total_quantity=d["total_quantity"],
                     donation_count=d["donation_count"],
                     created_at=d.get("created_at"),
                 )
@@ -209,7 +223,12 @@ class LocalStore:
                 if c.get("status", "active") != "disabled"
             ],
             donation_events=self._public_donation_events(),
+            kinds=self._sorted_kinds(),
         )
+
+    def _sorted_kinds(self) -> list[str]:
+        rest = sorted(k for k in self._donation_kinds if k != "Food Packets")
+        return (["Food Packets"] if "Food Packets" in self._donation_kinds else []) + rest
 
     def _public_donation_events(self) -> list[DonationEvent]:
         """list_all_donation_events(), minus any event tied to a disabled
@@ -235,9 +254,9 @@ class LocalStore:
         out = []
         for d in self._donors.values():
             donations = self._donations.get(d["id"], [])
-            total = sum(x["meals"] for x in donations)
-            out.append({**d, "total_meals": total, "donation_count": len(donations)})
-        out.sort(key=lambda d: d["total_meals"], reverse=True)
+            total = sum(x["quantity"] for x in donations)
+            out.append({**d, "total_quantity": total, "donation_count": len(donations)})
+        out.sort(key=lambda d: d["total_quantity"], reverse=True)
         return out
 
     def get_donor(self, donor_id: str) -> Donor | None:
@@ -246,14 +265,14 @@ class LocalStore:
             return None
         blob = get_blob_store()
         donations = self._donations.get(donor_id, [])
-        total = sum(x["meals"] for x in donations)
+        total = sum(x["quantity"] for x in donations)
         return Donor(
             id=d["id"],
             name=d["name"],
             location=d["location"],
             country=d.get("country", ""),
             story=d["story"],
-            total_meals=total,
+            total_quantity=total,
             donation_count=len(donations),
             created_at=d.get("created_at"),
             donations=[
@@ -261,7 +280,8 @@ class LocalStore:
                     id=x["id"],
                     date=x["date"],
                     location=x["location"],
-                    meals=x["meals"],
+                    kind=x["kind"],
+                    quantity=x["quantity"],
                     caption=x["caption"],
                     photo_urls=[blob.public_url(k) for k in x["photo_keys"]]
                     if x.get("photo_keys")
@@ -355,7 +375,9 @@ class LocalStore:
                 location=d.get("location", ""),
                 country=d.get("country", ""),
                 email=d.get("email", ""),
-                total_meals=sum(x["meals"] for x in self._donations.get(d["id"], [])),
+                total_quantity=sum(
+                    x["quantity"] for x in self._donations.get(d["id"], [])
+                ),
                 donation_count=len(self._donations.get(d["id"], [])),
                 status=d.get("status", "active"),
             )
@@ -517,7 +539,8 @@ class LocalStore:
             volunteer_name=e.get("volunteer_name"),
             status=e["status"],
             submission_id=e.get("submission_id"),
-            packet_count=e.get("packet_count"),
+            kind=e.get("kind"),
+            quantity=e.get("quantity"),
             delivery_role=e.get("delivery_role"),
             partner_charity=e.get("partner_charity"),
             notes=e.get("notes"),
@@ -542,7 +565,8 @@ class LocalStore:
         volunteer_name: str | None,
         latitude: float | None = None,
         longitude: float | None = None,
-        packet_count: int | None = None,
+        kind: str | None = None,
+        quantity: int | None = None,
         delivery_role: str | None = None,
         partner_charity: str | None = None,
         notes: str | None = None,
@@ -562,7 +586,8 @@ class LocalStore:
             "submission_id": None,
             "latitude": latitude,
             "longitude": longitude,
-            "packet_count": packet_count,
+            "kind": kind,
+            "quantity": quantity,
             "delivery_role": delivery_role,
             "partner_charity": partner_charity,
             "notes": notes,
@@ -628,7 +653,8 @@ class LocalStore:
         date: str,
         start_time: str,
         end_time: str,
-        packet_count: int | None,
+        kind: str | None,
+        quantity: int | None,
         delivery_role: str | None,
         partner_charity: str | None,
         notes: str | None,
@@ -646,7 +672,8 @@ class LocalStore:
         row["end_time"] = end_time
         row["latitude"] = latitude
         row["longitude"] = longitude
-        row["packet_count"] = packet_count
+        row["kind"] = kind
+        row["quantity"] = quantity
         row["delivery_role"] = delivery_role
         row["partner_charity"] = partner_charity
         row["notes"] = notes
@@ -658,7 +685,8 @@ class LocalStore:
         donor_id: str,
         submitted_by_user_id: str,
         location: str,
-        meals: int,
+        kind: str,
+        quantity: int,
         photo_keys: list[str],
         cover_photo_key: str,
         receipt_key: str | None,
@@ -673,7 +701,8 @@ class LocalStore:
             "user_id": submitted_by_user_id,
             "donor_id": donor_id,
             "location": location,
-            "meals": meals,
+            "kind": kind,
+            "quantity": quantity,
             "photo_keys": photo_keys,
             "cover_photo_key": cover_photo_key,
             "receipt_key": receipt_key,
@@ -772,7 +801,8 @@ class LocalStore:
                 "id": donation_id,
                 "date": s["created_at"][:10],
                 "location": s["location"],
-                "meals": s["meals"],
+                "kind": s["kind"],
+                "quantity": s["quantity"],
                 "caption": s.get("caption") or "",
                 "photo_keys": approved_keys,
                 "cover_photo_key": approved_cover_key,
@@ -781,7 +811,10 @@ class LocalStore:
                 "partner_charity": s.get("partner_charity"),
             }
         )
-        self._config["total_meals"] += s["meals"]
+        self._config["total_quantity"] += s["quantity"]
+        self._config["kind_totals"][s["kind"]] = (
+            self._config["kind_totals"].get(s["kind"], 0) + s["quantity"]
+        )
         s["status"] = "approved"
         # Public (CloudFront) URL of the approved cover photo, distinct from
         # list_submissions()'s transient presigned cover_photo_url — this is
@@ -822,6 +855,9 @@ class LocalStore:
         for k, v in fields.items():
             if v is not None:
                 self._config[k] = v
+
+    def ensure_donation_kind_exists(self, kind: str) -> None:
+        self._donation_kinds.add(kind)
 
     def create_partner_charity(
         self,

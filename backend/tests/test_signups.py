@@ -10,7 +10,8 @@ VALID_DONOR = {
     "email": "dana@example.com",
     "location": "Austin, TX",
     "country": "United States",
-    "packet_count": 100,
+    "kind": "Food Packets",
+    "quantity": 100,
     "delivery_role": "self",
     "donor_story": "Why I'm joining.",
     "commit_50k_4yr": True,
@@ -63,7 +64,8 @@ def test_volunteer_signup_optional_fields_can_be_omitted(client):
 # excluded here — it's not independently required, see the
 # delivery_role/partner_charity OR-group tests below.
 REQUIRED_DONOR_FIELDS = {
-    "packet_count": None,
+    "kind": "",
+    "quantity": None,
     "donor_story": "",
     "commit_50k_4yr": False,
     "agree_publish_story": False,

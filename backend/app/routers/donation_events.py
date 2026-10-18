@@ -89,6 +89,8 @@ def create_donation_event(
         volunteer_name = volunteer.name
 
     coords = geocode(body.location)
+    if body.kind:
+        store.ensure_donation_kind_exists(body.kind)
 
     return store.create_donation_event(
         donor_id=donor_id,
@@ -101,7 +103,8 @@ def create_donation_event(
         volunteer_name=volunteer_name,
         latitude=coords[0] if coords else None,
         longitude=coords[1] if coords else None,
-        packet_count=body.packet_count,
+        kind=body.kind,
+        quantity=body.quantity,
         delivery_role=body.delivery_role,
         partner_charity=body.partner_charity,
         notes=body.notes,
@@ -200,6 +203,8 @@ def update_donation_event(
     _validate_time_range(body.start_time, body.end_time)
 
     coords = geocode(body.location)
+    if body.kind:
+        store.ensure_donation_kind_exists(body.kind)
 
     try:
         return store.update_donation_event(
@@ -210,7 +215,8 @@ def update_donation_event(
             end_time=body.end_time,
             latitude=coords[0] if coords else None,
             longitude=coords[1] if coords else None,
-            packet_count=body.packet_count,
+            kind=body.kind,
+            quantity=body.quantity,
             delivery_role=body.delivery_role,
             partner_charity=body.partner_charity,
             notes=body.notes,
@@ -277,7 +283,12 @@ def share_donation_event(event_id: str) -> HTMLResponse:
             status_code=status.HTTP_404_NOT_FOUND, detail=EVENT_NOT_FOUND_DETAIL
         )
 
-    title = html.escape(f"{event.donor_name} is delivering meals on {event.date}")
+    kind_phrase = (
+        f"{event.quantity} {event.kind}" if event.kind and event.quantity else "help"
+    )
+    title = html.escape(
+        f"{event.donor_name} is delivering {kind_phrase} on {event.date}"
+    )
     time_range = _format_time_range(event.start_time, event.end_time)
     description = f"{time_range} at {event.location}" if time_range else event.location
     if event.notes:

@@ -16,7 +16,8 @@ def _approve_donor(client) -> None:
             "mode": "donor",
             "location": "Austin, TX",
             "country": "United States",
-            "packet_count": 100,
+            "kind": "Food Packets",
+            "quantity": 100,
             "delivery_role": "self",
             "donor_story": "Testing Facebook posting.",
             "commit_50k_4yr": True,
@@ -42,7 +43,12 @@ def _create_submission(client) -> str:
 
     resp = client.post(
         "/api/submissions",
-        json={"location": "East Austin", "meals": 90, "photo_keys": [key]},
+        json={
+            "location": "East Austin",
+            "kind": "Food Packets",
+            "quantity": 90,
+            "photo_keys": [key],
+        },
     )
     assert resp.status_code == 200
     return resp.json()["submission_id"]
