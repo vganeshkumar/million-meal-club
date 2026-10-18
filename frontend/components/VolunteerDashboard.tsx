@@ -29,11 +29,13 @@ function navButtonClass(active: boolean): string {
 type VolunteerDashboardProps = {
   events: EventItem[];
   partnerCharities: PartnerCharity[];
+  kinds: string[];
 };
 
 export function VolunteerDashboard({
   events,
   partnerCharities,
+  kinds,
 }: VolunteerDashboardProps) {
   const [volunteer, setVolunteer] = useState<Volunteer | null>(null);
   const [error, setError] = useState("");
@@ -191,10 +193,14 @@ export function VolunteerDashboard({
                   loading={assignedEvents === null}
                   error={assignedEventsError}
                   partnerCharities={partnerCharities}
+                  kinds={kinds}
                   onChanged={refreshAssignedEvents}
                 />
 
-                <SubmitForDonorForm assignedEvents={scheduledAssignedEvents} />
+                <SubmitForDonorForm
+                  assignedEvents={scheduledAssignedEvents}
+                  kinds={kinds}
+                />
               </>
             )}
           </div>
@@ -358,12 +364,14 @@ function AssignedDonationEventsSection({
   loading,
   error,
   partnerCharities,
+  kinds,
   onChanged,
 }: {
   events: DonationEvent[];
   loading: boolean;
   error: string;
   partnerCharities: PartnerCharity[];
+  kinds: string[];
   onChanged: () => void;
 }) {
   const [selected, setSelected] = useState<DonationEvent | null>(null);
@@ -393,9 +401,9 @@ function AssignedDonationEventsSection({
               <p className="m-0 text-sm font-bold">
                 {ev.date} — {ev.location}
               </p>
-              {ev.packetCount && (
+              {ev.quantity && ev.kind && (
                 <p className="m-0 mt-1 text-xs text-muted-2">
-                  {ev.packetCount} food packets
+                  {ev.quantity} {ev.kind}
                 </p>
               )}
             </div>
@@ -408,6 +416,7 @@ function AssignedDonationEventsSection({
           event={selected}
           partnerCharities={partnerCharities}
           volunteers={[]}
+          kinds={kinds}
           canAssignVolunteer={false}
           canCancel={false}
           onClose={() => setSelected(null)}
@@ -420,8 +429,10 @@ function AssignedDonationEventsSection({
 
 function SubmitForDonorForm({
   assignedEvents,
+  kinds,
 }: {
   assignedEvents: DonationEvent[];
+  kinds: string[];
 }) {
   const [status, setStatus] = useState<
     "idle" | "uploading" | "done" | "error"
@@ -429,7 +440,8 @@ function SubmitForDonorForm({
   const [errorMessage, setErrorMessage] = useState("");
   const [selectedEventId, setSelectedEventId] = useState("");
   const [location, setLocation] = useState("");
-  const [mealsDelivered, setMealsDelivered] = useState("");
+  const [kind, setKind] = useState("");
+  const [quantity, setQuantity] = useState("");
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [coverIndex, setCoverIndex] = useState(0);
 
@@ -439,7 +451,8 @@ function SubmitForDonorForm({
     setSelectedEventId(eventId);
     const event = assignedEvents.find((e) => e.id === eventId);
     setLocation(event ? event.location : "");
-    setMealsDelivered(event?.packetCount ? String(event.packetCount) : "");
+    setKind(event?.kind ?? "");
+    setQuantity(event?.quantity ? String(event.quantity) : "");
     setPhotoFiles([]);
     setCoverIndex(0);
   }
@@ -474,7 +487,8 @@ function SubmitForDonorForm({
       await api.submitProof({
         donation_event_id: selectedEventId,
         location,
-        meals: Number(data.get("meals_delivered") ?? 0),
+        kind,
+        quantity: Number(data.get("quantity") ?? 0),
         photo_keys: photoKeys,
         cover_photo_key: photoKeys[coverIndex],
         receipt_key: receiptKey,
@@ -483,7 +497,8 @@ function SubmitForDonorForm({
       setStatus("done");
       setSelectedEventId("");
       setLocation("");
-      setMealsDelivered("");
+      setKind("");
+      setQuantity("");
       setPhotoFiles([]);
       setCoverIndex(0);
       form.reset();
@@ -557,14 +572,36 @@ function SubmitForDonorForm({
                 className={fieldClass}
               />
             </label>
+          </div>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-4">
             <label className={labelClass}>
-              Meals Delivered
+              Kind of Donation
+              <input
+                type="text"
+                name="kind"
+                list="submit-for-donor-kinds"
+                value={kind}
+                onChange={(e) => setKind(e.target.value)}
+                readOnly={Boolean(selectedEvent?.kind)}
+                required
+                placeholder="Food Packets"
+                className={fieldClass}
+              />
+              <datalist id="submit-for-donor-kinds">
+                {kinds.map((k) => (
+                  <option key={k} value={k} />
+                ))}
+              </datalist>
+            </label>
+            <label className={labelClass}>
+              Quantity (people/lives benefited)
               <input
                 type="number"
-                name="meals_delivered"
+                name="quantity"
                 min={1}
-                value={mealsDelivered}
-                onChange={(e) => setMealsDelivered(e.target.value)}
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                readOnly={Boolean(selectedEvent?.quantity)}
                 required
                 className={fieldClass}
               />

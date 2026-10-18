@@ -21,7 +21,9 @@ export function ShareEventMenu({ event }: { event: DonationEvent }) {
     typeof window !== "undefined" ? window.location.origin : "http://localhost",
   ).toString();
 
-  const shareText = `Help ${event.donorName} deliver meals on ${event.date} — join The Million Meal Club.`;
+  const shareText = `Help ${event.donorName} deliver ${
+    event.kind ?? "help"
+  } on ${event.date} — join The Million Meal Club.`;
 
   function theme() {
     const styles = containerRef.current

@@ -2,7 +2,11 @@ export type Donation = {
   id: string;
   date: string;
   location: string;
-  meals: number;
+  // kind is the donation category ("Food Packets", "Medicine", ...) and
+  // quantity is how many people/lives it benefited. See
+  // specs/features/034-donation-kinds-and-quantity/design.md.
+  kind: string;
+  quantity: number;
   caption: string;
   // Up to 5 photos, submitter-ordered; coverPhotoUrl is the one chosen to
   // represent this delivery anywhere only a single fixed-size image is
@@ -21,7 +25,7 @@ export type Donor = {
   location: string;
   country: string;
   story: string;
-  totalMeals: number;
+  totalQuantity: number;
   donationCount: number;
   donations?: Donation[];
   // Absent for donors approved before this field existed.
@@ -67,10 +71,14 @@ export type PartnerCharityAdminView = PartnerCharity & {
 export type SiteConfig = {
   charityName: string;
   founderName: string;
-  totalMeals: number;
+  totalQuantity: number;
   milestone2027: number;
   goal2030: number;
   accentPalette: [string, string];
+  // Public per-kind breakdown of totalQuantity — only kinds with at
+  // least one approved donation appear. See
+  // specs/features/034-donation-kinds-and-quantity/design.md.
+  kindTotals: Record<string, number>;
 };
 
 export type ContentResponse = {
@@ -79,6 +87,9 @@ export type ContentResponse = {
   events: EventItem[];
   partnerCharities: PartnerCharity[];
   donationEvents: DonationEvent[];
+  // Shared, ever-growing list of donation kinds — alphabetical except
+  // "Food Packets" pinned first.
+  kinds: string[];
 };
 
 export type AuthUser = {
@@ -132,7 +143,11 @@ export type DonationEvent = {
   submissionId?: string;
   // Optional signup-style detail entered at scheduling time — see
   // specs/features/019-dashboard-profile-tab-and-proof-relocation.
-  packetCount?: number;
+  // Renamed from packetCount — each donation event independently records
+  // its own kind, so a donor can diversify across kinds over time. See
+  // specs/features/034-donation-kinds-and-quantity/design.md.
+  kind?: string;
+  quantity?: number;
   deliveryRole?: "self" | "volunteer_needed";
   partnerCharity?: string;
   notes?: string;
@@ -162,7 +177,8 @@ export type SignupPayload = {
   notes?: string;
   // mode === "donor" (invitation-only application)
   email?: string;
-  packet_count?: number;
+  kind?: string;
+  quantity?: number;
   delivery_role?: "self" | "volunteer_needed";
   partner_charity?: string;
   donor_story?: string;
@@ -177,7 +193,8 @@ export type SignupPayload = {
 
 export type SubmissionPayload = {
   location: string;
-  meals: number;
+  kind: string;
+  quantity: number;
   // 1-5 photos, submitter-ordered. cover_photo_key must be one of them
   // if given, else defaults to the first. See
   // specs/features/025-multi-photo-proof-with-cover/design.md.
@@ -207,7 +224,8 @@ export type SignupAdminView = {
   location: string;
   country?: string;
   notes?: string;
-  packet_count?: number;
+  kind?: string;
+  quantity?: number;
   delivery_role?: "self" | "volunteer_needed";
   partner_charity?: string;
   donor_story?: string;
@@ -226,7 +244,8 @@ export type SubmissionAdminView = {
   user_id: string;
   donor_id: string;
   location: string;
-  meals: number;
+  kind: string;
+  quantity: number;
   photo_urls: string[];
   cover_photo_url: string;
   receipt_url?: string;
@@ -250,7 +269,7 @@ export type DonorAdminView = {
   location: string;
   country: string;
   email: string;
-  total_meals: number;
+  total_quantity: number;
   donation_count: number;
   status: MembershipStatus;
 };

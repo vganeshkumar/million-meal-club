@@ -54,7 +54,8 @@ test("My Donations navigation switches between Overview, Schedule, and Profile w
       email: donorEmail,
       location: "Austin, TX",
       country: "United States",
-      packet_count: 60,
+      kind: "Food Packets",
+      quantity: 60,
       delivery_role: "self",
       donor_story: "Testing the nav toggle.",
       commit_50k_4yr: true,
@@ -111,7 +112,7 @@ test("My Donations navigation switches between Overview, Schedule, and Profile w
   await expect(page.getByTestId("profile-form")).toHaveCount(0);
 });
 
-test("scheduling a donation accepts packet count, delivery role, and notes", async ({
+test("scheduling a donation accepts kind, quantity, delivery role, and notes", async ({
   page,
 }) => {
   const donorName = `Full Schedule Donor ${Date.now()}`;
@@ -126,7 +127,8 @@ test("scheduling a donation accepts packet count, delivery role, and notes", asy
       email: donorEmail,
       location: "Austin, TX",
       country: "United States",
-      packet_count: 60,
+      kind: "Food Packets",
+      quantity: 60,
       delivery_role: "self",
       donor_story: "Testing the full schedule form.",
       commit_50k_4yr: true,
@@ -164,8 +166,9 @@ test("scheduling a donation accepts packet count, delivery role, and notes", asy
   await scheduleForm.getByLabel("Start Time", { exact: true }).fill("09:00");
   await scheduleForm.getByLabel("End Time", { exact: true }).fill("11:00");
   await scheduleForm
-    .getByLabel("Number of Food Packets")
-    .fill("42");
+    .getByLabel("Kind of Donation (optional)")
+    .fill("Education Supplies");
+  await scheduleForm.getByLabel("Quantity (optional)").fill("42");
   // Delivery role and partner charity are mutually exclusive (matching the
   // home page's Join In form) — this covers the delivery-role path; the
   // partner-charity field goes through the same create call, just via the
@@ -179,14 +182,16 @@ test("scheduling a donation accepts packet count, delivery role, and notes", asy
   const mine = await page.request.get(`${BACKEND}/api/donation-events/mine`);
   const events = (await mine.json()) as Array<{
     location: string;
-    packetCount?: number;
+    kind?: string;
+    quantity?: number;
     deliveryRole?: string;
     partnerCharity?: string;
     notes?: string;
   }>;
   const created = events.find((e) => e.location === location);
   expect(created).toBeTruthy();
-  expect(created?.packetCount).toBe(42);
+  expect(created?.kind).toBe("Education Supplies");
+  expect(created?.quantity).toBe(42);
   expect(created?.deliveryRole).toBe("volunteer_needed");
   expect(created?.notes).toBe("Ring the back doorbell.");
 });

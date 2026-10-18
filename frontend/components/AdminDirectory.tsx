@@ -109,8 +109,8 @@ export function AdminDonors() {
                 <dd className="m-0">{d.location}</dd>
               </div>
               <div>
-                <dt className="font-bold text-muted-2">Meals delivered</dt>
-                <dd className="m-0">{d.total_meals.toLocaleString()}</dd>
+                <dt className="font-bold text-muted-2">Lives impacted</dt>
+                <dd className="m-0">{d.total_quantity.toLocaleString()}</dd>
               </div>
               <div>
                 <dt className="font-bold text-muted-2">Donations</dt>

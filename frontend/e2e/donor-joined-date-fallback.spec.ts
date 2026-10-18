@@ -43,7 +43,8 @@ test("a donor with no donations shows a joined date, on both their detail page a
       email,
       location: "Austin, TX",
       country: "United States",
-      packet_count: 100,
+      kind: "Food Packets",
+      quantity: 100,
       delivery_role: "self",
       donor_story: "Testing the joined-date fallback.",
       commit_50k_4yr: true,
@@ -64,15 +65,15 @@ test("a donor with no donations shows a joined date, on both their detail page a
   expect(donorRow).toBeDefined();
   const donorId = donorRow!.donor_id;
 
-  // Homepage "Featured Donors" card: 0 meals delivered, so the joined
-  // line takes its place instead of the usual meals-delivered stat.
+  // Homepage "Featured Donors" card: 0 lives impacted, so the joined
+  // line takes its place instead of the usual stat.
   // Date-only, no timestamp — YYYY-MM-DD and nothing after it.
   const joinedDateOnly = /^Joined \d{4}-\d{2}-\d{2}$/;
   await page.goto("/");
   const homepageCard = page.locator("button").filter({ hasText: name });
   await expect(homepageCard).toBeVisible();
   await expect(homepageCard.getByText(joinedDateOnly)).toBeVisible();
-  await expect(homepageCard).not.toContainText("meals delivered");
+  await expect(homepageCard).not.toContainText("lives impacted");
 
   // Public detail page: the delivery list is empty, so the joined line
   // takes its place.

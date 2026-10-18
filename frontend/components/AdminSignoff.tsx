@@ -191,10 +191,16 @@ function PendingApplications() {
               )}
               {a.mode === "donor" ? (
                 <>
-                  {a.packet_count != null && (
+                  {a.kind && (
                     <div>
-                      <dt className="font-bold text-muted-2">Packets</dt>
-                      <dd className="m-0">{a.packet_count}</dd>
+                      <dt className="font-bold text-muted-2">Kind</dt>
+                      <dd className="m-0">{a.kind}</dd>
+                    </div>
+                  )}
+                  {a.quantity != null && (
+                    <div>
+                      <dt className="font-bold text-muted-2">Quantity</dt>
+                      <dd className="m-0">{a.quantity}</dd>
                     </div>
                   )}
                   {a.delivery_role && (
@@ -385,7 +391,7 @@ function PendingSubmissions() {
               <p className="m-0 text-xs text-muted-3">{s.created_at}</p>
             </div>
             <p className="m-0 mb-3 text-sm text-muted-2">
-              {s.meals} meals delivered
+              {s.quantity} {s.kind} delivered
             </p>
             <div className="mb-3 grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3">
               {s.photo_urls.map((url) => (
