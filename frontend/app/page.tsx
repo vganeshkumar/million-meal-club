@@ -6,7 +6,6 @@ import type { AuthUser, ContentResponse, Donor } from "@/lib/types";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
 import { Progress } from "@/components/Progress";
-import { DonationKindBreakdown } from "@/components/DonationKindBreakdown";
 import { Events } from "@/components/Events";
 import { HowItWorks } from "@/components/HowItWorks";
 import { JoinInForm } from "@/components/JoinInForm";
@@ -234,10 +233,6 @@ export default function Home() {
               milestone2027={config!.milestone2027}
               goal2030={config!.goal2030}
             />
-          )}
-
-          {content && (
-            <DonationKindBreakdown kindTotals={config!.kindTotals} />
           )}
 
           <Hero
