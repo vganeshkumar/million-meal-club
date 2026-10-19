@@ -529,6 +529,27 @@ class LocalStore:
 
     # -- donation events ---------------------------------------------------
     def _donation_event_from_row(self, e: dict) -> DonationEvent:
+        # photo_urls/cover_photo_url are computed fresh from the stored raw
+        # keys on every read (not baked in at approval time) — same
+        # treatment as Donor.donations already gets in get_donor(). A
+        # literal baked URL would go stale forever if PHOTOS_PUBLIC_BASE_URL
+        # or the CDN routing ever changes; computing fresh never can. Falls
+        # back to whatever legacy baked strings already exist for events
+        # approved before this field existed. See
+        # specs/infra/design.md "modules/photos details" (2026-10-19 update).
+        blob = get_blob_store()
+        photo_keys = e.get("photo_keys")
+        cover_photo_key = e.get("cover_photo_key")
+        photo_urls = (
+            [blob.public_url(k) for k in photo_keys]
+            if photo_keys
+            else e.get("photo_urls")
+        )
+        cover_photo_url = (
+            blob.public_url(cover_photo_key)
+            if cover_photo_key
+            else e.get("cover_photo_url")
+        )
         return DonationEvent(
             id=e["id"],
             donor_id=e["donor_id"],
@@ -544,8 +565,8 @@ class LocalStore:
             delivery_role=e.get("delivery_role"),
             partner_charity=e.get("partner_charity"),
             notes=e.get("notes"),
-            photo_urls=e.get("photo_urls"),
-            cover_photo_url=e.get("cover_photo_url"),
+            photo_urls=photo_urls,
+            cover_photo_url=cover_photo_url,
             caption=e.get("caption"),
             latitude=e.get("latitude"),
             longitude=e.get("longitude"),
@@ -826,8 +847,8 @@ class LocalStore:
             event = self._donation_events.get(donation_event_id)
             if event is not None:
                 event["status"] = "completed"
-                event["photo_urls"] = [blob.public_url(k) for k in approved_keys]
-                event["cover_photo_url"] = blob.public_url(approved_cover_key)
+                event["photo_keys"] = approved_keys
+                event["cover_photo_key"] = approved_cover_key
                 event["caption"] = s.get("caption") or None
 
     def get_submission(self, submission_id: str) -> dict | None:
