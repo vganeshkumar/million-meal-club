@@ -183,6 +183,19 @@ function CompletedDonationEventCard({
   event: DonationEvent;
   onClick: () => void;
 }) {
+  const [mapFailed, setMapFailed] = useState(false);
+  const { latitude: lat, longitude: lon } = event;
+  const hasCoords = lat != null && lon != null;
+  // The actual delivery photo is more meaningful once a donation is
+  // complete, so it takes priority; the map is a fallback header image
+  // for completed events that don't have one (or haven't loaded it yet)
+  // — see specs/features/023-event-location-time-and-sharing/design.md
+  // for why the scheduled card already does this, and the "completed
+  // donations aren't showing maps" report that prompted adding it here
+  // too.
+  const showMap =
+    !event.coverPhotoUrl && hasCoords && hasStaticMap() && !mapFailed;
+
   return (
     <button
       type="button"
@@ -190,7 +203,7 @@ function CompletedDonationEventCard({
       data-testid="donation-event-card"
       className="flex w-[280px] cursor-pointer flex-col gap-3.5 rounded-[20px] border border-border bg-card p-7 text-left"
     >
-      {event.coverPhotoUrl && (
+      {event.coverPhotoUrl ? (
         <div className="-mx-7 -mt-7 h-40 overflow-hidden rounded-t-[20px]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -199,6 +212,20 @@ function CompletedDonationEventCard({
             className="h-full w-full object-cover"
           />
         </div>
+      ) : (
+        showMap &&
+        lat != null &&
+        lon != null && (
+          <div className="-mx-7 -mt-7 h-40 overflow-hidden rounded-t-[20px]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={staticMapUrl(lat, lon)}
+              alt={`Map of ${event.location}`}
+              onError={() => setMapFailed(true)}
+              className="h-full w-full object-cover"
+            />
+          </div>
+        )
       )}
       <div className="inline-flex self-start rounded-full bg-green-soft px-3.5 py-1.5 text-[13px] font-bold text-[var(--accent-green)]">
         {event.date} · Delivered ✓
@@ -295,6 +322,12 @@ function CompletedEventModal({
   event: DonationEvent;
   onClose: () => void;
 }) {
+  const [mapFailed, setMapFailed] = useState(false);
+  const { latitude: lat, longitude: lon } = event;
+  const hasCoords = lat != null && lon != null;
+  const showMap =
+    !event.coverPhotoUrl && hasCoords && hasStaticMap() && !mapFailed;
+
   return (
     <>
       <div
@@ -333,6 +366,17 @@ function CompletedEventModal({
             <img
               src={event.coverPhotoUrl}
               alt="Delivery proof"
+              className="w-full object-cover"
+            />
+          </div>
+        )}
+        {showMap && lat != null && lon != null && (
+          <div className="overflow-hidden rounded-2xl border border-border">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={staticMapUrl(lat, lon)}
+              alt={`Map of ${event.location}`}
+              onError={() => setMapFailed(true)}
               className="w-full object-cover"
             />
           </div>
