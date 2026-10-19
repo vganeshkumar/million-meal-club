@@ -36,6 +36,29 @@ resource "aws_cloudfront_origin_access_control" "site" {
   signing_protocol                  = "sigv4"
 }
 
+# The photos bucket stores objects under "approved/<id>/<file>" (no
+# "photos/" prefix — see infra/README.md's bucket policy scoped to
+# "approved/*"), but CloudFront forwards the full matched request path
+# (including the "/photos" the path_pattern matched on) to the origin
+# unchanged. Without stripping it first, every request 403s against a
+# key that doesn't exist (e.g. "/photos/approved/x/y" looks up S3 key
+# "photos/approved/x/y", not "approved/x/y") — this was silently
+# breaking every approved donation photo. See
+# specs/infra/design.md "modules/photos details".
+resource "aws_cloudfront_function" "strip_photos_prefix" {
+  name    = "${var.bucket_name}-strip-photos-prefix"
+  runtime = "cloudfront-js-2.0"
+  comment = "Strips the /photos prefix before forwarding to the photos S3 origin."
+  publish = true
+  code    = <<-EOT
+    function handler(event) {
+      var request = event.request;
+      request.uri = request.uri.replace(/^\/photos/, "");
+      return request;
+    }
+  EOT
+}
+
 resource "aws_cloudfront_distribution" "this" {
   enabled             = true
   default_root_object = "index.html"
@@ -92,6 +115,11 @@ resource "aws_cloudfront_distribution" "this" {
     cached_methods         = ["GET", "HEAD"]
     cache_policy_id        = local.caching_optimized_policy_id
     compress               = true
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.strip_photos_prefix.arn
+    }
   }
 
   restrictions {

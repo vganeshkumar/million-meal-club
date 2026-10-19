@@ -66,6 +66,18 @@ Bucket policy statement:
 ```
 Lifecycle rule: `filter { prefix = "pending/" }`, `expiration { days = 30 }`.
 
+**Update (2026-10-19)**: objects live at `approved/<id>/<file>` (no
+`photos/` prefix), but CloudFront's `/photos/*` behavior was forwarding
+the full matched request path — including the literal `/photos` —
+straight to the S3 origin unchanged, so every request 403'd against a
+key that didn't exist (`photos/approved/...` instead of `approved/...`).
+This silently broke every approved donation photo site-wide (visible as
+missing images on completed donation-event cards). Fixed in
+`modules/static-site` with an `aws_cloudfront_function` (viewer-request)
+that strips the `/photos` prefix before forwarding — see
+`aws_cloudfront_function.strip_photos_prefix`. CDN-layer fix only; no
+application code or existing S3 objects needed to change.
+
 ## `modules/dns` details
 Only created when `var.domain_name != ""`. ACM cert must be requested in
 `us-east-1` regardless of the main deployment region (CloudFront
