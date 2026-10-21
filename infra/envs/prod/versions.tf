@@ -9,14 +9,16 @@ terraform {
   }
 
   # Bootstrapped manually once (S3 bucket + DynamoDB lock table) — see
-  # infra/README.md. Uncomment and fill in after bootstrapping:
-  # backend "s3" {
-  #   bucket         = "mmc-terraform-state"
-  #   key            = "env/prod/terraform.tfstate"
-  #   region         = "us-east-1"
-  #   dynamodb_table = "mmc-terraform-locks"
-  #   encrypt        = true
-  # }
+  # infra/README.md. "mmc-terraform-state" was already taken globally (S3
+  # bucket names are unique across all AWS accounts), so this uses the
+  # account-ID-suffixed name actually created.
+  backend "s3" {
+    bucket         = "mmc-terraform-state-125051246076"
+    key            = "env/prod/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "mmc-terraform-locks"
+    encrypt        = true
+  }
 }
 
 provider "aws" {

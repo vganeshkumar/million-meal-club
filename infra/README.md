@@ -26,9 +26,12 @@ infra/
 
 ### 1. Remote state backend (manual, not managed by this Terraform)
 
+Bucket names are unique across *all* AWS accounts, not just yours —
+`mmc-terraform-state` was already taken, so this suffixes the account ID:
+
 ```bash
-aws s3api create-bucket --bucket mmc-terraform-state --region us-east-1
-aws s3api put-bucket-versioning --bucket mmc-terraform-state \
+aws s3api create-bucket --bucket mmc-terraform-state-<account-id> --region us-east-1
+aws s3api put-bucket-versioning --bucket mmc-terraform-state-<account-id> \
   --versioning-configuration Status=Enabled
 aws dynamodb create-table --table-name mmc-terraform-locks \
   --attribute-definitions AttributeName=LockID,AttributeType=S \
@@ -39,7 +42,8 @@ aws dynamodb create-table --table-name mmc-terraform-locks \
 Then uncomment and fill in the `backend "s3" {}` block in
 `envs/<env>/versions.tf` (bucket/table names above, key
 `env/<env>/terraform.tfstate`), and run `terraform init` again in that env
-directory.
+directory. `envs/prod` already has this wired up
+(`mmc-terraform-state-125051246076`); `envs/dev` still uses local state.
 
 ### 2. A placeholder Lambda container image
 

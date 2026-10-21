@@ -29,7 +29,7 @@ authoritative design for real.
                          │  domain, OAC             │
                          └───────────┬─────────────┘
              ┌────────────────────────┼────────────────────────┐
-             │ default behavior       │ /api/*                 │ /photos/*
+             │ default behavior       │ /api/*                 │ /approved/*
              ▼                        ▼                        ▼
       ┌─────────────┐         ┌───────────────┐         ┌───────────────┐
       │ S3: site    │         │ API Gateway   │         │ S3: photos    │
@@ -58,10 +58,16 @@ authoritative design for real.
 ## Decisions and why
 
 ### One CloudFront distribution, path-routed
-`/api/*` → API Gateway, `/photos/*` → photos bucket (scoped to `approved/*`),
-everything else → site bucket. One origin domain means the frontend and API
-are same-origin: no CORS preflight complexity, and the auth session cookie
-can be `SameSite=Lax` instead of needing `SameSite=None; Secure` cross-site
+`/api/*` → API Gateway, `/approved/*` → photos bucket (matches the actual S3
+key prefix — CloudFront forwards the full request path to the origin
+unmodified, so the behavior's path pattern has to equal the real object
+prefix, not an arbitrary namespace like `/photos/*`; see
+`infra/modules/static-site/main.tf`), everything else → site bucket. One
+origin domain means the frontend and API are same-origin: no CORS preflight
+complexity for API calls (photo *uploads* are a separate direct-to-S3 path
+that does need its own CORS config — see `modules/photos/main.tf`), and the
+auth session cookie can be `SameSite=Lax` instead of needing
+`SameSite=None; Secure` cross-site
 cookie workarounds.
 
 ### Compute: Lambda + API Gateway HTTP API

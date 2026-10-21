@@ -7,7 +7,7 @@ click-ops. See [[00-constitution]] §6, §7, §8.
 
 ## Functional requirements
 - One Terraform-managed CloudFront distribution with three behaviors
-  (default → static site, `/api/*` → API Gateway, `/photos/*` → photos
+  (default → static site, `/api/*` → API Gateway, `/approved/*` → photos
   bucket), fronting everything under one domain.
 - S3 site bucket: private, OAC-only read access, versioning optional,
   lifecycle not needed (small static bundle, overwritten on each deploy).

@@ -5,7 +5,7 @@
       by the Terraform it locks). Not run this session (needs the user's
       AWS credentials).
 - [x] `modules/static-site` — S3 bucket, CloudFront distribution (3
-      behaviors: default/`/api/*`/`/photos/*`), OAC.
+      behaviors: default/`/api/*`/`/approved/*`), OAC.
 - [x] `modules/photos` — S3 bucket, lifecycle rule, OAC (bucket policy
       lives at the env root — see design.md for why).
 - [x] `modules/data` — DynamoDB tables (on-demand), outputs of table

@@ -29,7 +29,7 @@ inherently tied to the site bucket, and Terraform's module boundaries here
 are about ownership of the distribution resource, not this-service-only
 in isolation. `api` and `photos` modules expose outputs (origin domain name,
 origin access identity requirements) that `static-site` consumes to add the
-extra ordered cache behaviors (`/api/*`, `/photos/*`).
+extra ordered cache behaviors (`/api/*`, `/approved/*`).
 
 ## `modules/api` details
 - `aws_ecr_repository` — image repo for the FastAPI container.
